@@ -1,0 +1,21 @@
+Congratulations and welcome to {{ company_name }}, {{ full_name }}!
+
+We're delighted to have you join us as a {{ role_label }}. Your account has
+been created and is ready to use.
+
+YOUR LOGIN DETAILS
+-------------------
+{{ role_label }} ID (username): {{ login_id }}
+Temporary password:             {{ password }}
+
+Sign in here: {{ login_url }}
+
+For security, please sign in and change your password as soon as possible.
+
+{% if extra %}
+{% for key, value in extra.items %}{{ key }}: {{ value }}
+{% endfor %}{% endif %}
+
+We're excited to have you on the team. Welcome aboard!
+
+— HR, {{ company_name }}
