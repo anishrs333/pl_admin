@@ -7,15 +7,16 @@ import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
 
 const statusBadge = { active: 'badge-green', inactive: 'badge-gray', probation: 'badge-amber', on_leave: 'badge-indigo' }
-const avatarColors = ['#312E6B', '#7C3AED', '#1F7A45', '#D97B29']
+const avatarColors = ['#2563EB', '#7C3AED', '#10B981', '#F59E0B']
 const emptyForm = { full_name: '', email: '', mobile: '', department: '', designation: '', joining_date: '', salary: '', address: '', emergency_contact_name: '', emergency_contact: '', status: 'active' }
 
 function Avatar({ emp, size = 36 }) {
   if (emp.profile_picture_url) {
-    return <img src={emp.profile_picture_url} alt={emp.full_name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+    return <img src={emp.profile_picture_url} alt={emp.full_name || 'Profile'} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
   }
-  const initials = emp.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-  const color = avatarColors[emp.id % avatarColors.length]
+  const name = emp.full_name || emp.name || 'User'
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  const color = avatarColors[(emp.id || 0) % avatarColors.length]
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
       {initials}
@@ -43,7 +44,10 @@ export default function Employees() {
   const saveMutation = useMutation({
     mutationFn: async (d) => {
       const fd = new FormData()
-      Object.entries(d).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') fd.append(k, v) })
+      Object.entries(d).forEach(([k, v]) => {
+        if (['profile_picture', 'profile_picture_url', 'document'].includes(k)) return
+        if (v !== null && v !== undefined && v !== '') fd.append(k, v)
+      })
       if (picFile) fd.append('profile_picture', picFile)
       const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
       return editId ? api.patch(`/employees/${editId}/`, fd, cfg) : api.post('/employees/', fd, cfg)

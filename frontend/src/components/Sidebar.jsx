@@ -35,7 +35,7 @@ const selfNav = [
   ]},
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth()
   const isHR = user?.role === 'hr'
   const initials = (user?.first_name?.[0] || user?.username?.[0] || 'U') + (user?.last_name?.[0] || '')
@@ -43,18 +43,26 @@ export default function Sidebar() {
   const code = user?.profile?.code
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-brand">
-        <div className="brand-mark">PL Soft Tech</div>
-        <div className="brand-sub">{isHR ? 'HR Console' : 'Self-Service Portal'}</div>
+        <div>
+          <div className="brand-mark">PL Soft Tech</div>
+          <div className="brand-sub">{isHR ? 'HR Console' : 'Self-Service Portal'}</div>
+        </div>
+        {isOpen && (
+          <button className="mobile-close-btn" onClick={onClose}>
+            &times;
+          </button>
+        )}
       </div>
       <nav className="sidebar-nav">
         {nav.map(({ section, items }) => (
           <div key={section}>
             <div className="nav-section-label">{section}</div>
             {items.map(({ to, label, icon: Icon }) => (
-              <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                <Icon />{label}
+              <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={onClose}>
+                <Icon />
+                <span>{label}</span>
               </NavLink>
             ))}
           </div>

@@ -40,7 +40,10 @@ export default function Internships() {
   const saveMutation = useMutation({
     mutationFn: async (d) => {
       const fd = new FormData()
-      Object.entries(d).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') fd.append(k, v) })
+      Object.entries(d).forEach(([k, v]) => {
+        if (['profile_picture', 'profile_picture_url', 'document'].includes(k)) return
+        if (v !== null && v !== undefined && v !== '') fd.append(k, v)
+      })
       if (picFile) fd.append('profile_picture', picFile)
       const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
       return editId ? api.patch(`/internships/${editId}/`, fd, cfg) : api.post('/internships/', fd, cfg)

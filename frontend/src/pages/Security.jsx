@@ -31,9 +31,9 @@ export default function Security() {
       <div className="page-header"><div><h2 className="page-header-title">Security</h2><p className="page-header-sub">Manage your account password</p></div></div>
 
       {user?.must_change_password && (
-        <div className="card" style={{background:'var(--amber-50)',border:'1px solid #EFC79A',marginBottom:20,display:'flex',gap:12,alignItems:'flex-start'}}>
-          <ShieldAlert size={18} style={{color:'#A85A1C',flexShrink:0,marginTop:1}}/>
-          <div style={{fontSize:13,color:'#7A4514'}}>You're using a temporary password (your mobile number). Please set a new password below before continuing.</div>
+        <div className="card" style={{background:'var(--amber-50)',border:'none',marginBottom:20,display:'flex',gap:12,alignItems:'flex-start'}}>
+          <ShieldAlert size={18} style={{color:'#B45309',flexShrink:0,marginTop:1}}/>
+          <div style={{fontSize:13,color:'#92400E',fontWeight:500}}>You're using a temporary password (your mobile number). Please set a new password below before continuing.</div>
         </div>
       )}
 

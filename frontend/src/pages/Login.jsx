@@ -45,7 +45,6 @@ export default function Login() {
             <label className="form-label">ID</label>
             <input
               className="form-control mono"
-              placeholder="PL-EMP-2026-0001"
               value={form.username}
               onChange={e=>setForm(f=>({...f,username:e.target.value}))}
               required

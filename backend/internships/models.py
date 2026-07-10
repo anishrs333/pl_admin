@@ -60,6 +60,8 @@ class Intern(models.Model):
             role='intern',
             must_change_password=True,
         )
+        self.user = user
+        self.user_id = user.id
         Intern.objects.filter(pk=self.pk).update(user=user)
         self._send_welcome_email()
 

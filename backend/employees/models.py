@@ -81,6 +81,8 @@ class Employee(models.Model):
             role='employee',
             must_change_password=True,
         )
+        self.user = user
+        self.user_id = user.id
         Employee.objects.filter(pk=self.pk).update(user=user)
         self._send_welcome_email()
 

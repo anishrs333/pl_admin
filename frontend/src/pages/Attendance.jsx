@@ -39,7 +39,7 @@ function LeaveForm({ employees = [], isHR, onClose, onSuccess }) {
     setSaving(true)
     try {
       const payload = { ...form }
-      if (!isHR) delete payload.employee
+      if (!payload.employee) delete payload.employee // Don't send empty employee string
       await api.post('/attendance/leaves/', payload)
       toast.success('Leave request submitted')
       onSuccess()
@@ -53,17 +53,6 @@ function LeaveForm({ employees = [], isHR, onClose, onSuccess }) {
 
   return (
     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {isHR && (
-        <div>
-          <label className="form-label">Employee *</label>
-          <select className="form-control" value={form.employee} onChange={e => set('employee', e.target.value)} required>
-            <option value="">Select employee…</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_id})</option>
-            ))}
-          </select>
-        </div>
-      )}
       <div>
         <label className="form-label">Leave Type *</label>
         <select className="form-control" value={form.leave_type} onChange={e => set('leave_type', e.target.value)} required>
@@ -142,7 +131,8 @@ export default function Attendance() {
 
   const { data: todayAtt, isLoading } = useQuery({
     queryKey: ['attendance-today'],
-    queryFn: () => api.get('/attendance/today/').then(r => r.data)
+    queryFn: () => api.get('/attendance/today/').then(r => r.data),
+    enabled: isHR
   })
   const { data: emps } = useQuery({
     queryKey: ['employees-list'],
@@ -169,13 +159,13 @@ export default function Attendance() {
 
   const checkinMutation = useMutation({
     mutationFn: (id) => api.post('/attendance/checkin/', { employee_id: id }),
-    onSuccess: () => { qc.invalidateQueries(['attendance-today']); qc.invalidateQueries(['attendance-my-status']); toast.success('Checked in!') },
-    onError: (e) => toast.error(e.response?.data?.error || 'Failed to check in')
+    onSuccess: () => { qc.invalidateQueries(['attendance-today']); qc.invalidateQueries(['attendance-my-status']); toast.success('Logged in successfully!') },
+    onError: (e) => toast.error(e.response?.data?.error || 'Failed to login')
   })
   const checkoutMutation = useMutation({
     mutationFn: (id) => api.post('/attendance/checkout/', { employee_id: id }),
-    onSuccess: () => { qc.invalidateQueries(['attendance-today']); qc.invalidateQueries(['attendance-my-status']); toast.success('Checked out!') },
-    onError: (e) => toast.error(e.response?.data?.error || 'Failed to check out')
+    onSuccess: () => { qc.invalidateQueries(['attendance-today']); qc.invalidateQueries(['attendance-my-status']); toast.success('Logged out successfully!') },
+    onError: (e) => toast.error(e.response?.data?.error || 'Failed to logout')
   })
   const approveMutation = useMutation({
     mutationFn: (id) => api.post(`/attendance/leaves/${id}/approve/`),
@@ -224,36 +214,45 @@ export default function Attendance() {
         </div>
 
         {tab === 'attendance' && (
-          <div className="card" style={{ maxWidth: 480 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center', padding: '24px 0' }}>
-              <div style={{ width: 72, height: 72, borderRadius: '50%', background: myAtt?.check_in ? 'var(--green-50)' : 'var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid', borderColor: myAtt?.check_in ? '#86EFAC' : 'var(--border)' }}>
-                <Clock size={30} style={{ color: myAtt?.check_in ? '#1F7A45' : 'var(--slate)' }} />
+          <div className="card" style={{ maxWidth: 540, margin: '0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28, alignItems: 'center', padding: '32px 10px' }}>
+              <div style={{ width: 92, height: 92, borderRadius: '50%', background: myAtt?.check_in ? 'var(--indigo-50)' : 'var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid', borderColor: myAtt?.check_in ? 'var(--indigo)' : 'var(--line)', transition: 'all 0.3s', boxShadow: myAtt?.check_in ? '0 0 20px rgba(37,99,235,0.15)' : 'none' }}>
+                <Clock size={38} style={{ color: myAtt?.check_in ? 'var(--indigo)' : 'var(--slate)' }} />
               </div>
-              <div style={{ display: 'flex', gap: 40, textAlign: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--slate)', marginBottom: 4 }}>Check in</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700 }}>{myAtt?.check_in ? new Date(myAtt.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+              
+              <div style={{ display: 'flex', width: '100%', justifyContent: 'space-around', textAlign: 'center', background: 'var(--paper)', padding: '24px 0', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line-light)' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: 'var(--slate)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Login Time</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, color: myAtt?.check_in ? 'var(--indigo)' : 'var(--slate)' }}>{myAtt?.check_in ? new Date(myAtt.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--slate)', marginBottom: 4 }}>Check out</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700 }}>{myAtt?.check_out ? new Date(myAtt.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                <div style={{ width: 1, background: 'var(--line)', margin: '0 10px' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: 'var(--slate)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Logout Time</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, color: myAtt?.check_out ? 'var(--ink)' : 'var(--slate)' }}>{myAtt?.check_out ? new Date(myAtt.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                 </div>
               </div>
+              
               {myAtt?.work_hours && (
-                <div style={{ background: 'var(--green-50)', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, color: '#1F7A45' }}>
-                  ✓ Worked {myAtt.work_hours}h today
+                <div style={{ background: 'var(--green-50)', borderRadius: 'var(--radius-md)', padding: '12px 24px', fontSize: 15, fontWeight: 600, color: '#047857', width: '100%', textAlign: 'center' }}>
+                  ✓ Logged {myAtt.work_hours} hours today
                 </div>
               )}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              
+              <div style={{ width: '100%', display: 'flex', gap: 16 }}>
                 {!myAtt?.check_in && (
-                  <button className="btn btn-success" style={{ width: '100%' }} onClick={() => checkinMutation.mutate(myEmpId)} disabled={checkinMutation.isPending}>
-                    {checkinMutation.isPending ? 'Checking in…' : '✓ Check In'}
+                  <button className="btn btn-primary" style={{ flex: 1, padding: '16px', fontSize: 15, borderRadius: 'var(--radius-lg)' }} onClick={() => checkinMutation.mutate(myEmpId)} disabled={checkinMutation.isPending}>
+                    {checkinMutation.isPending ? 'Logging in…' : 'Login for the day'}
                   </button>
                 )}
                 {myAtt?.check_in && !myAtt?.check_out && (
-                  <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => checkoutMutation.mutate(myEmpId)} disabled={checkoutMutation.isPending}>
-                    {checkoutMutation.isPending ? 'Checking out…' : 'Check Out'}
+                  <button className="btn btn-amber" style={{ flex: 1, padding: '16px', fontSize: 15, borderRadius: 'var(--radius-lg)' }} onClick={() => checkoutMutation.mutate(myEmpId)} disabled={checkoutMutation.isPending}>
+                    {checkoutMutation.isPending ? 'Logging out…' : 'Logout & End Day'}
                   </button>
+                )}
+                {myAtt?.check_out && (
+                  <div style={{ flex: 1, padding: '16px', fontSize: 15, fontWeight: 600, color: 'var(--slate)', textAlign: 'center', background: 'var(--paper)', borderRadius: 'var(--radius-lg)' }}>
+                    Shift Completed
+                  </div>
                 )}
               </div>
             </div>
@@ -293,7 +292,6 @@ export default function Attendance() {
     <div>
       <div className="page-header">
         <div><h2 className="page-header-title">Attendance</h2><p className="page-header-sub">{new Date().toDateString()}</p></div>
-        <button className="btn btn-primary" onClick={() => setLeaveModal(true)}><Plus size={16} /> Add Leave</button>
       </div>
 
       {/* Tab switcher */}
@@ -308,9 +306,9 @@ export default function Attendance() {
       {tab === 'attendance' && (
         <>
           <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 20 }}>
-            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><Users style={{ color: '#1F7A45' }} size={19} /></div><div className="stat-label">Employees present</div><div className="stat-value">{presentEmployees}</div></div>
+            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><Users style={{ color: '#047857' }} size={19} /></div><div className="stat-label">Employees present</div><div className="stat-value">{presentEmployees}</div></div>
             <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--red-50)' }}><Users style={{ color: 'var(--red)' }} size={19} /></div><div className="stat-label">Employees absent</div><div className="stat-value">{absentEmployees}</div></div>
-            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><GraduationCap style={{ color: '#1F7A45' }} size={19} /></div><div className="stat-label">Interns present</div><div className="stat-value">{presentInterns}</div></div>
+            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><GraduationCap style={{ color: '#047857' }} size={19} /></div><div className="stat-label">Interns present</div><div className="stat-value">{presentInterns}</div></div>
             <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--red-50)' }}><GraduationCap style={{ color: 'var(--red)' }} size={19} /></div><div className="stat-label">Interns absent</div><div className="stat-value">{absentInterns}</div></div>
           </div>
 
@@ -324,7 +322,7 @@ export default function Attendance() {
             {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
               <div className="table-wrap" style={{ margin: 0 }}>
                 <table>
-                  <thead><tr><th>Name</th><th>Type</th><th>Check in</th><th>Check out</th><th>Hours</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Name</th><th>Type</th><th>Login Time</th><th>Logout Time</th><th>Hours</th><th>Status</th></tr></thead>
                   <tbody>
                     {filteredRoster.map(person => {
                       const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
@@ -378,11 +376,7 @@ export default function Attendance() {
         </div>
       )}
 
-      {leaveModal && (
-        <Modal title="Add Leave Request" onClose={() => setLeaveModal(false)}>
-          <LeaveForm isHR={true} employees={employees} onClose={() => setLeaveModal(false)} onSuccess={() => qc.invalidateQueries(['leaves'])} />
-        </Modal>
-      )}
+      {/* Leave Modal removed for HR as backend only supports self-service leave requests */}
     </div>
   )
 }

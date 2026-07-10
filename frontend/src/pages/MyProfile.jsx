@@ -73,10 +73,10 @@ export default function MyProfile() {
           <div className="card-header"><span className="card-title">Contact information</span></div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Row icon={Mail} label="Email" value={profile.email} />
-            <Row icon={Phone} label="Mobile" value={profile.mobile} bg="var(--green-50)" color="#1F7A45" />
+            <Row icon={Phone} label="Mobile" value={profile.mobile} bg="var(--green-50)" color="#047857" />
             {isEmployee
-              ? profile.address && <Row icon={MapPin} label="Address" value={profile.address} bg="var(--amber-50)" color="#A85A1C" />
-              : <Row icon={Building2} label="College" value={profile.college_name} bg="var(--amber-50)" color="#A85A1C" />
+              ? profile.address && <Row icon={MapPin} label="Address" value={profile.address} bg="var(--amber-50)" color="#B45309" />
+              : <Row icon={Building2} label="College" value={profile.college_name} bg="var(--amber-50)" color="#B45309" />
             }
           </div>
         </div>

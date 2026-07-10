@@ -8,12 +8,12 @@ function HRDashboard() {
 
   const cards = [
     { label:'Active Employees', value: stats?.total_employees ?? '—', icon: Users, color:'var(--indigo)', bg:'var(--indigo-50)' },
-    { label:'Active Interns', value: stats?.total_interns ?? '—', icon: GraduationCap, color:'#1F7A45', bg:'var(--green-50)' },
-    { label:'Open Candidates', value: stats?.total_candidates ?? '—', icon: UserSearch, color:'#A85A1C', bg:'var(--amber-50)' },
+    { label:'Active Interns', value: stats?.total_interns ?? '—', icon: GraduationCap, color:'#047857', bg:'var(--green-50)' },
+    { label:'Open Candidates', value: stats?.total_candidates ?? '—', icon: UserSearch, color:'#B45309', bg:'var(--amber-50)' },
     { label:"Present Today", value: stats?.today_attendance ?? '—', icon: Clock, color:'var(--indigo)', bg:'var(--indigo-50)' },
     { label:'Pending Leave Requests', value: stats?.pending_leaves ?? '—', icon: Calendar, color:'var(--red)', bg:'var(--red-50)' },
     { label:'Pending Tasks', value: stats?.pending_tasks ?? '—', icon: ClipboardList, color:'var(--red)', bg:'var(--red-50)' },
-    { label:'Payroll Pending', value: stats?.pending_payroll ?? '—', icon: DollarSign, color:'#A85A1C', bg:'var(--amber-50)' },
+    { label:'Payroll Pending', value: stats?.pending_payroll ?? '—', icon: DollarSign, color:'#B45309', bg:'var(--amber-50)' },
   ]
 
   return (
@@ -81,13 +81,13 @@ function SelfDashboard() {
           <div className="stat-value">{data?.pending_tasks ?? '—'}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon-wrap" style={{background:'var(--green-50)'}}><CheckCircle2 style={{color:'#1F7A45'}} size={19}/></div>
+          <div className="stat-icon-wrap" style={{background:'var(--green-50)'}}><CheckCircle2 style={{color:'#047857'}} size={19}/></div>
           <div className="stat-label">Checked In Today</div>
           <div className="stat-value">{data?.attendance_today ? 'Yes' : 'No'}</div>
         </div>
         {isIntern && (
           <div className="stat-card">
-            <div className="stat-icon-wrap" style={{background:'var(--amber-50)'}}><GraduationCap style={{color:'#A85A1C'}} size={19}/></div>
+            <div className="stat-icon-wrap" style={{background:'var(--amber-50)'}}><GraduationCap style={{color:'#B45309'}} size={19}/></div>
             <div className="stat-label">Certificate</div>
             <div className="stat-value" style={{fontSize:16}}>{data?.certificate_issued ? 'Issued' : 'Pending'}</div>
           </div>
