@@ -1,15 +1,18 @@
-"""Premium corporate payslip PDF — PL Soft Tech Solutions.
+"""Zoho-style payslip PDF — PL Soft Tech Solutions.
 
-Design: Clean white document with deep teal (#0F766E) accent, gold summary
-stripe, single unified pay table, structured header with top color band,
-and professional authorised signatory section.
+Design: Clean Zoho Payroll inspired layout with blue header band,
+company logo, structured employee info grid, earnings/deductions
+table with alternating rows, bold net-pay banner, and professional
+footer with contact details.
 """
+import os
 from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch, mm
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable,
+    Image,
 )
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
@@ -17,23 +20,35 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December']
 
-# ── Colour Palette — Teal + Gold Corporate ──────────────────────────────────
-TEAL        = colors.HexColor('#0F766E')
-TEAL_DARK   = colors.HexColor('#134E4A')
-TEAL_LIGHT  = colors.HexColor('#CCFBF1')
-TEAL_50     = colors.HexColor('#F0FDFA')
-GOLD        = colors.HexColor('#B45309')
-GOLD_BG     = colors.HexColor('#FFFBEB')
-GOLD_BORDER = colors.HexColor('#F59E0B')
-CHARCOAL    = colors.HexColor('#1C1917')
-STONE_700   = colors.HexColor('#44403C')
-STONE_500   = colors.HexColor('#78716C')
-STONE_300   = colors.HexColor('#D6D3D1')
-STONE_200   = colors.HexColor('#E7E5E4')
-STONE_100   = colors.HexColor('#F5F5F4')
-WHITE       = colors.white
-RED_SOFT    = colors.HexColor('#B91C1C')
-RED_BG      = colors.HexColor('#FEF2F2')
+# ── Logo path ────────────────────────────────────────────────────────────────
+LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'company_logo.png')
+
+# ── Company Info ─────────────────────────────────────────────────────────────
+COMPANY_NAME = 'PL Soft Tech Solutions Pvt Ltd'
+COMPANY_PHONE = '+91 73583 86560'
+COMPANY_EMAIL = 'hr@plsofttech.com'
+COMPANY_ADDRESS = 'J M, Complex, Junction, Kappukadu, Tamil Nadu 629162'
+
+# ── Colour Palette — Zoho Blue Corporate ─────────────────────────────────────
+PRIMARY       = colors.HexColor('#1B5E9E')    # Main header blue
+PRIMARY_DARK  = colors.HexColor('#14456F')    # Darker blue accents
+PRIMARY_LIGHT = colors.HexColor('#E8F0FE')    # Light blue bg
+PRIMARY_50    = colors.HexColor('#F0F6FF')    # Very light blue
+ACCENT        = colors.HexColor('#0D7C3D')    # Green for net pay
+ACCENT_BG     = colors.HexColor('#E6F5EC')    # Light green bg
+ACCENT_DARK   = colors.HexColor('#0A6331')    # Dark green
+CHARCOAL      = colors.HexColor('#212121')    # Primary text
+GRAY_800      = colors.HexColor('#424242')    # Secondary text
+GRAY_600      = colors.HexColor('#757575')    # Muted text
+GRAY_400      = colors.HexColor('#BDBDBD')    # Borders
+GRAY_200      = colors.HexColor('#EEEEEE')    # Light borders
+GRAY_100      = colors.HexColor('#F5F5F5')    # Alternating row bg
+GRAY_50       = colors.HexColor('#FAFAFA')    # Card bg
+WHITE         = colors.white
+RED           = colors.HexColor('#D32F2F')    # Deductions
+RED_LIGHT     = colors.HexColor('#FFEBEE')    # Deductions bg
+ORANGE_BG     = colors.HexColor('#FFF8E1')    # Amount in words bg
+ORANGE_BORDER = colors.HexColor('#FFB300')
 
 # ── Number to Words (Indian System) ─────────────────────────────────────────
 _ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -77,7 +92,7 @@ def amount_in_words(amount):
 
 def _s(name, **kw):
     """Helper to create paragraph styles."""
-    defaults = dict(fontName='Helvetica', fontSize=9, textColor=STONE_700, leading=12)
+    defaults = dict(fontName='Helvetica', fontSize=9, textColor=GRAY_800, leading=12)
     defaults.update(kw)
     return ParagraphStyle(name, **defaults)
 
@@ -88,68 +103,70 @@ def _money(v):
 
 
 def generate_payslip_pdf(salary):
-    """Generate a premium, corporate-grade payslip PDF with teal-gold theme."""
+    """Generate a Zoho-style payslip PDF with company logo and clean layout."""
     buf = BytesIO()
     W, H = A4
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
-        topMargin=0.35 * inch, bottomMargin=0.35 * inch,
-        leftMargin=0.6 * inch, rightMargin=0.6 * inch
+        topMargin=0.3 * inch, bottomMargin=0.3 * inch,
+        leftMargin=0.55 * inch, rightMargin=0.55 * inch
     )
-    uw = W - 1.2 * inch  # usable width ~6.5 inches
+    uw = W - 1.1 * inch  # usable width
     elements = []
 
     # =========================================================================
-    # TOP COLOR BAND — thin teal strip across the top
+    # 1. HEADER — Blue band with Logo + Company Name + Payslip Title
     # =========================================================================
-    top_band = Table([['']],  colWidths=[uw], rowHeights=[5])
-    top_band.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), TEAL),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    elements.append(top_band)
-    elements.append(Spacer(1, 12))
 
-    # =========================================================================
-    # 1.  COMPANY HEADER — Logo + Name + Payslip Label
-    # =========================================================================
-    logo = Table([['PL']], colWidths=[0.5 * inch], rowHeights=[0.5 * inch])
-    logo.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), TEAL),
-        ('TEXTCOLOR', (0, 0), (-1, -1), WHITE),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 16),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
+    # Company logo image
+    logo_element = None
+    if os.path.exists(LOGO_PATH):
+        logo_element = Image(LOGO_PATH, width=0.55 * inch, height=0.55 * inch)
+    else:
+        # Fallback text logo
+        logo_tbl = Table([['PL']], colWidths=[0.55 * inch], rowHeights=[0.55 * inch])
+        logo_tbl.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), PRIMARY),
+            ('TEXTCOLOR', (0, 0), (-1, -1), WHITE),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 18),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        logo_element = logo_tbl
 
-    company = Paragraph(
-        '<font size="13" color="#1C1917"><b>PL Soft Tech Solutions Pvt Ltd</b></font><br/>'
-        '<font size="7.5" color="#78716C">Kollam, Kerala, India &nbsp;&bull;&nbsp; '
-        'CIN: U72200KL2024PTC000000 &nbsp;&bull;&nbsp; hr@plsofttech.com</font>',
-        _s('co', leading=15)
+    company_info = Paragraph(
+        f'<font size="14" color="#FFFFFF"><b>{COMPANY_NAME}</b></font><br/>'
+        f'<font size="7.5" color="#B3D4F5">{COMPANY_ADDRESS}</font><br/>'
+        f'<font size="7.5" color="#B3D4F5">'
+        f'Phone: {COMPANY_PHONE} &nbsp;|&nbsp; Email: {COMPANY_EMAIL}</font>',
+        _s('co_hdr', leading=14)
     )
 
-    slip_label = Paragraph(
-        '<font size="7" color="#78716C">SALARY SLIP</font><br/>'
-        f'<font size="12" color="#0F766E"><b>{MONTHS[salary.month]} {salary.year}</b></font>',
-        _s('sl', alignment=TA_RIGHT, leading=14)
+    slip_title = Paragraph(
+        '<font size="16" color="#FFFFFF"><b>PAYSLIP</b></font><br/>'
+        f'<font size="9" color="#B3D4F5">{MONTHS[salary.month]} {salary.year}</font>',
+        _s('sl_title', alignment=TA_RIGHT, leading=16)
     )
 
-    hdr = Table([[logo, company, slip_label]],
-                colWidths=[0.7 * inch, 3.6 * inch, 2.2 * inch])
-    hdr.setStyle(TableStyle([
+    header_row = Table(
+        [[logo_element, company_info, slip_title]],
+        colWidths=[0.75 * inch, 3.5 * inch, uw - 4.25 * inch]
+    )
+    header_row.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), PRIMARY),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (1, 0), (1, 0), 12),
+        ('LEFTPADDING', (0, 0), (0, 0), 12),
+        ('LEFTPADDING', (1, 0), (1, 0), 10),
+        ('RIGHTPADDING', (-1, 0), (-1, 0), 14),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
     ]))
-    elements.append(hdr)
-    elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width='100%', thickness=0.8, color=STONE_300))
-    elements.append(Spacer(1, 12))
+    elements.append(header_row)
+    elements.append(Spacer(1, 14))
 
     # =========================================================================
-    # 2.  EMPLOYEE DETAILS — 2-column card with teal left accent
+    # 2. EMPLOYEE DETAILS — Zoho-style info grid (2 columns, labeled fields)
     # =========================================================================
     person = salary.employee or salary.intern
     is_intern = salary.employee is None
@@ -159,9 +176,10 @@ def generate_payslip_pdf(salary):
         person.department.name if person.department else '—')
     joined = person.start_date if is_intern else person.joining_date
 
-    lbl_s = _s('lbl', fontName='Helvetica', fontSize=7.5, textColor=STONE_500,
+    lbl_s = _s('lbl', fontName='Helvetica', fontSize=7, textColor=GRAY_600,
                spaceAfter=1)
-    val_s = _s('val', fontName='Helvetica-Bold', fontSize=9.5, textColor=CHARCOAL)
+    val_s = _s('val', fontName='Helvetica-Bold', fontSize=9, textColor=CHARCOAL,
+               leading=11)
 
     def _field(label, value):
         return [
@@ -169,12 +187,15 @@ def generate_payslip_pdf(salary):
             Paragraph(str(value) if value else '—', val_s),
         ]
 
-    # Row 1
-    r1 = _field('Employee Name', salary.person_name) + _field('Employee ID', salary.person_code)
-    r2 = _field('Designation', designation) + _field('Department', department)
+    # Employee info rows
+    r1 = _field('Employee Name', salary.person_name) + \
+         _field('Employee ID', salary.person_code)
+    r2 = _field('Designation', designation) + \
+         _field('Department', department)
     r3 = _field('Date of Joining',
                 joined.strftime('%d %b %Y') if joined else '—') + \
-         _field('Pay Period', f'01 {MONTHS[salary.month][:3]} – '
+         _field('Pay Period',
+                f'01 {MONTHS[salary.month][:3]} – '
                 f'{30 if salary.month != 2 else 28} {MONTHS[salary.month][:3]} {salary.year}')
     r4 = _field('Employment Type',
                 'Intern' if is_intern else 'Full-Time') + \
@@ -188,21 +209,21 @@ def generate_payslip_pdf(salary):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('BACKGROUND', (0, 0), (-1, -1), TEAL_50),
-        ('BOX', (0, 0), (-1, -1), 0.5, STONE_200),
-        ('LINEBELOW', (0, 0), (-1, -2), 0.3, STONE_200),
-        ('LINEAFTER', (1, 0), (1, -1), 0.3, STONE_200),
+        ('BACKGROUND', (0, 0), (-1, -1), PRIMARY_50),
+        ('BOX', (0, 0), (-1, -1), 0.6, GRAY_200),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.3, GRAY_200),
+        ('LINEAFTER', (1, 0), (1, -1), 0.3, GRAY_200),
     ]))
 
-    # Teal left accent bar (4px wide)
-    accent = Table([['']],  colWidths=[4], rowHeights=[emp_tbl.wrap(0, 0)[1]])
-    accent.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), TEAL),
+    # Blue left accent bar (3px wide)
+    accent_bar = Table([['']],  colWidths=[3], rowHeights=[emp_tbl.wrap(0, 0)[1]])
+    accent_bar.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), PRIMARY),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
 
-    emp_wrapper = Table([[accent, emp_tbl]], colWidths=[4, uw - 4])
+    emp_wrapper = Table([[accent_bar, emp_tbl]], colWidths=[3, uw - 3])
     emp_wrapper.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -214,7 +235,7 @@ def generate_payslip_pdf(salary):
     elements.append(Spacer(1, 16))
 
     # =========================================================================
-    # 3.  UNIFIED PAY TABLE — Earnings on left, Deductions on right, single table
+    # 3. EARNINGS & DEDUCTIONS TABLE — Zoho-style split table
     # =========================================================================
     basic = float(salary.basic_salary or 0)
     hra = float(salary.hra or 0)
@@ -241,23 +262,25 @@ def generate_payslip_pdf(salary):
     while len(ded_items) < max_rows:
         ded_items.append(('', 0))
 
-    # Header row
+    # Styles for table cells
     hdr_s = _s('th', fontName='Helvetica-Bold', fontSize=8, textColor=WHITE)
-    body_s = _s('bd', fontSize=8.5, textColor=STONE_700)
-    amt_s = _s('am', fontSize=8.5, textColor=CHARCOAL, alignment=TA_RIGHT)
-    bold_s = _s('bl', fontName='Helvetica-Bold', fontSize=9, textColor=CHARCOAL)
-    bold_r = _s('br', fontName='Helvetica-Bold', fontSize=9, textColor=CHARCOAL,
-                alignment=TA_RIGHT)
+    body_s = _s('bd', fontSize=8.5, textColor=GRAY_800)
+    amt_s = _s('am', fontSize=8.5, textColor=CHARCOAL, fontName='Helvetica',
+               alignment=TA_RIGHT)
+    bold_amt = _s('bam', fontSize=9, textColor=CHARCOAL,
+                  fontName='Helvetica-Bold', alignment=TA_RIGHT)
 
     pay_rows = []
-    # Header
+
+    # Section header: EARNINGS | AMOUNT | DEDUCTIONS | AMOUNT
     pay_rows.append([
         Paragraph('EARNINGS', hdr_s),
         Paragraph('AMOUNT (₹)', hdr_s),
         Paragraph('DEDUCTIONS', hdr_s),
         Paragraph('AMOUNT (₹)', hdr_s),
     ])
-    # Body
+
+    # Body rows
     for i in range(max_rows):
         el, ev = earn_items[i]
         dl, dv = ded_items[i]
@@ -267,12 +290,13 @@ def generate_payslip_pdf(salary):
             Paragraph(dl, body_s),
             Paragraph(_money(dv) if dl else '', amt_s),
         ])
-    # Totals
-    tot_earn_s = _s('te', fontName='Helvetica-Bold', fontSize=9, textColor=TEAL_DARK)
-    tot_earn_a = _s('ta', fontName='Helvetica-Bold', fontSize=9.5, textColor=TEAL_DARK,
+
+    # Totals row
+    tot_earn_s = _s('te', fontName='Helvetica-Bold', fontSize=9, textColor=PRIMARY_DARK)
+    tot_earn_a = _s('ta', fontName='Helvetica-Bold', fontSize=9.5, textColor=PRIMARY_DARK,
                     alignment=TA_RIGHT)
-    tot_ded_s = _s('td2', fontName='Helvetica-Bold', fontSize=9, textColor=RED_SOFT)
-    tot_ded_a = _s('td3', fontName='Helvetica-Bold', fontSize=9.5, textColor=RED_SOFT,
+    tot_ded_s = _s('td2', fontName='Helvetica-Bold', fontSize=9, textColor=RED)
+    tot_ded_a = _s('td3', fontName='Helvetica-Bold', fontSize=9.5, textColor=RED,
                    alignment=TA_RIGHT)
 
     pay_rows.append([
@@ -286,95 +310,115 @@ def generate_payslip_pdf(salary):
     qtr = half / 2
     pay_tbl = Table(pay_rows, colWidths=[qtr + 20, qtr - 20, qtr + 20, qtr - 20])
 
-    n_body = len(pay_rows) - 2  # exclude header & total
     style_cmds = [
         # Global
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        # Header row
-        ('BACKGROUND', (0, 0), (1, 0), TEAL),
-        ('BACKGROUND', (2, 0), (3, 0), STONE_700),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        # Header row — blue for earnings, dark gray for deductions
+        ('BACKGROUND', (0, 0), (1, 0), PRIMARY),
+        ('BACKGROUND', (2, 0), (3, 0), GRAY_800),
         ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
         # Alternating rows
-        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [WHITE, STONE_100]),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [WHITE, GRAY_100]),
         # Grid lines
-        ('LINEBELOW', (0, 0), (-1, -2), 0.3, STONE_200),
-        ('LINEAFTER', (1, 0), (1, -1), 0.6, STONE_300),  # center divider
-        ('BOX', (0, 0), (-1, -1), 0.6, STONE_200),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.3, GRAY_200),
+        ('LINEAFTER', (1, 0), (1, -1), 0.8, GRAY_400),  # center divider
+        ('BOX', (0, 0), (-1, -1), 0.6, GRAY_200),
         # Total row
-        ('BACKGROUND', (0, -1), (1, -1), TEAL_LIGHT),
-        ('BACKGROUND', (2, -1), (3, -1), RED_BG),
-        ('LINEABOVE', (0, -1), (-1, -1), 1, STONE_300),
+        ('BACKGROUND', (0, -1), (1, -1), PRIMARY_LIGHT),
+        ('BACKGROUND', (2, -1), (3, -1), RED_LIGHT),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, GRAY_400),
     ]
     pay_tbl.setStyle(TableStyle(style_cmds))
     elements.append(pay_tbl)
     elements.append(Spacer(1, 14))
 
     # =========================================================================
-    # 4.  NET PAY — Gold/Amber highlight banner
+    # 4. NET PAY — Green highlight banner (Zoho-style)
     # =========================================================================
-    net_l = Paragraph(
-        '<font size="10" color="#92400E"><b>NET PAY (Take Home)</b></font>',
-        _s('nl', leading=13)
+    net_label = Paragraph(
+        '<font size="10" color="#0A6331"><b>NET PAY (Take Home)</b></font>',
+        _s('net_l', leading=13)
     )
-    net_a = Paragraph(
-        f'<font size="18" color="#92400E"><b>&#8377; {_money(net)}</b></font>',
-        _s('na', alignment=TA_RIGHT, leading=20)
+    net_amount = Paragraph(
+        f'<font size="20" color="#0A6331"><b>&#8377; {_money(net)}</b></font>',
+        _s('net_a', alignment=TA_RIGHT, leading=22)
     )
-    net_banner = Table([[net_l, net_a]], colWidths=[uw * 0.5, uw * 0.5])
+    net_banner = Table([[net_label, net_amount]], colWidths=[uw * 0.45, uw * 0.55])
     net_banner.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), GOLD_BG),
-        ('BOX', (0, 0), (-1, -1), 1.2, GOLD_BORDER),
+        ('BACKGROUND', (0, 0), (-1, -1), ACCENT_BG),
+        ('BOX', (0, 0), (-1, -1), 1.5, ACCENT),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-        ('LEFTPADDING', (0, 0), (0, 0), 14),
-        ('RIGHTPADDING', (-1, 0), (-1, 0), 14),
+        ('TOPPADDING', (0, 0), (-1, -1), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+        ('LEFTPADDING', (0, 0), (0, 0), 16),
+        ('RIGHTPADDING', (-1, 0), (-1, 0), 16),
     ]))
     elements.append(net_banner)
     elements.append(Spacer(1, 6))
 
     # Amount in words
-    elements.append(Paragraph(
-        f'<i><font color="#78716C" size="8">In Words: </font>'
-        f'<font color="#44403C" size="8.5"><b>{amount_in_words(net)}</b></font></i>',
-        _s('wrds', spaceAfter=4)
-    ))
-    elements.append(Spacer(1, 20))
+    words_banner = Table(
+        [[Paragraph(
+            f'<font size="7.5" color="#757575">In Words: </font>'
+            f'<font size="8" color="#424242"><b>{amount_in_words(net)}</b></font>',
+            _s('wrds', leading=10)
+        )]],
+        colWidths=[uw]
+    )
+    words_banner.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), ORANGE_BG),
+        ('BOX', (0, 0), (-1, -1), 0.5, ORANGE_BORDER),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    elements.append(words_banner)
+    elements.append(Spacer(1, 18))
 
     # =========================================================================
-    # 5.  PAYMENT SUMMARY BAR — compact info strip
+    # 5. PAYMENT DETAILS — Compact info strip
     # =========================================================================
+    info_lbl_s = _s('info_lbl', fontSize=7, textColor=GRAY_600, leading=10)
+    info_val_s = _s('info_val', fontSize=8.5, fontName='Helvetica-Bold',
+                    textColor=CHARCOAL, leading=11)
+
+    payment_status_color = '#0D7C3D' if salary.status == 'paid' else '#E65100'
+    payment_status_text = 'PAID' if salary.status == 'paid' else 'GENERATED'
+
     summary_data = [
         [
-            Paragraph('<font size="7" color="#78716C">PAYMENT MODE</font><br/>'
-                      '<font size="8.5" color="#1C1917"><b>Bank Transfer</b></font>',
-                      _s('pm', leading=12)),
-            Paragraph('<font size="7" color="#78716C">PAYMENT STATUS</font><br/>'
-                      f'<font size="8.5" color="#0F766E"><b>'
-                      f'{("PAID" if salary.status == "paid" else "GENERATED")}'
-                      f'</b></font>',
-                      _s('ps', leading=12)),
-            Paragraph('<font size="7" color="#78716C">PAYMENT REF</font><br/>'
-                      f'<font size="8.5" color="#1C1917"><b>'
-                      f'{salary.payment_ref or "—"}</b></font>',
-                      _s('pr', leading=12)),
-            Paragraph('<font size="7" color="#78716C">GENERATED ON</font><br/>'
-                      f'<font size="8.5" color="#1C1917"><b>'
-                      f'{salary.created_at.strftime("%d %b %Y") if hasattr(salary, "created_at") and salary.created_at else "—"}'
-                      f'</b></font>',
-                      _s('go', leading=12)),
+            Paragraph(
+                '<font size="7" color="#757575">PAYMENT MODE</font><br/>'
+                '<font size="8.5" color="#212121"><b>Bank Transfer</b></font>',
+                _s('pm', leading=12)),
+            Paragraph(
+                '<font size="7" color="#757575">PAYMENT STATUS</font><br/>'
+                f'<font size="8.5" color="{payment_status_color}"><b>'
+                f'{payment_status_text}</b></font>',
+                _s('ps', leading=12)),
+            Paragraph(
+                '<font size="7" color="#757575">PAYMENT REF</font><br/>'
+                f'<font size="8.5" color="#212121"><b>'
+                f'{salary.payment_ref or "—"}</b></font>',
+                _s('pr', leading=12)),
+            Paragraph(
+                '<font size="7" color="#757575">GENERATED ON</font><br/>'
+                f'<font size="8.5" color="#212121"><b>'
+                f'{salary.created_at.strftime("%d %b %Y") if hasattr(salary, "created_at") and salary.created_at else "—"}'
+                f'</b></font>',
+                _s('go', leading=12)),
         ]
     ]
     summary_tbl = Table(summary_data, colWidths=[uw / 4] * 4)
     summary_tbl.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BACKGROUND', (0, 0), (-1, -1), STONE_100),
-        ('BOX', (0, 0), (-1, -1), 0.5, STONE_200),
-        ('LINEAFTER', (0, 0), (-2, -1), 0.3, STONE_200),
+        ('BACKGROUND', (0, 0), (-1, -1), GRAY_100),
+        ('BOX', (0, 0), (-1, -1), 0.5, GRAY_200),
+        ('LINEAFTER', (0, 0), (-2, -1), 0.3, GRAY_200),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
@@ -383,24 +427,24 @@ def generate_payslip_pdf(salary):
     elements.append(Spacer(1, 24))
 
     # =========================================================================
-    # 6.  FOOTER — Signatory + Disclaimer + Bottom band
+    # 6. FOOTER — Signatory + Disclaimer + Bottom band
     # =========================================================================
-    elements.append(HRFlowable(width='100%', thickness=0.4, color=STONE_200))
+    elements.append(HRFlowable(width='100%', thickness=0.4, color=GRAY_200))
     elements.append(Spacer(1, 16))
 
     sig = Table([
         [
             Paragraph(
-                '<font size="7.5" color="#78716C">'
+                '<font size="7.5" color="#757575">'
                 'This is a system-generated document.<br/>'
                 'No signature is required.</font>',
                 _s('disc', leading=10)
             ),
             '',
             Paragraph(
-                '<font size="9" color="#1C1917"><b>For PL Soft Tech Solutions</b></font><br/>'
-                '<font size="7.5" color="#78716C">Authorised Signatory</font><br/>'
-                '<font size="7" color="#0F766E">HR Department</font>',
+                f'<font size="9" color="#212121"><b>For {COMPANY_NAME}</b></font><br/>'
+                '<font size="7.5" color="#757575">Authorised Signatory</font><br/>'
+                f'<font size="7" color="#1B5E9E">HR Department</font>',
                 _s('sig', alignment=TA_RIGHT, leading=12)
             ),
         ]
@@ -413,25 +457,27 @@ def generate_payslip_pdf(salary):
 
     # Confidential notice
     elements.append(Paragraph(
-        '<font size="6.5" color="#A8A29E">'
+        '<font size="6.5" color="#BDBDBD">'
         'CONFIDENTIAL — This payslip is intended solely for the named employee. '
         'Unauthorized reproduction or distribution is strictly prohibited.</font>',
         _s('conf', alignment=TA_CENTER, leading=9)
     ))
     elements.append(Spacer(1, 8))
 
-    # Bottom teal band
+    # Bottom blue band with contact info
     bot_band = Table(
         [[Paragraph(
-            '<font size="7" color="#CCFBF1">'
-            'PL Soft Tech Solutions Pvt Ltd &nbsp;&bull;&nbsp; Kollam, Kerala &nbsp;&bull;&nbsp; '
-            '+91 474-XXXXXXX &nbsp;&bull;&nbsp; www.plsofttech.com</font>',
+            f'<font size="7" color="#B3D4F5">'
+            f'{COMPANY_NAME} &nbsp;|&nbsp; '
+            f'{COMPANY_ADDRESS} &nbsp;|&nbsp; '
+            f'{COMPANY_PHONE} &nbsp;|&nbsp; '
+            f'{COMPANY_EMAIL}</font>',
             _s('bb', alignment=TA_CENTER)
         )]],
         colWidths=[uw]
     )
     bot_band.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), TEAL_DARK),
+        ('BACKGROUND', (0, 0), (-1, -1), PRIMARY_DARK),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
