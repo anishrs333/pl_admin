@@ -13,6 +13,7 @@ import Colleges from './pages/Colleges'
 import Clients from './pages/Clients'
 import MyProfile from './pages/MyProfile'
 import Security from './pages/Security'
+import WFH from './pages/WFH'
 
 function FullPageLoader() {
   return (
@@ -48,6 +49,7 @@ function AppRoutes() {
       <Route path="/internships" element={<PrivateRoute><HRRoute><Internships/></HRRoute></PrivateRoute>}/>
       <Route path="/candidates" element={<PrivateRoute><HRRoute><Candidates/></HRRoute></PrivateRoute>}/>
       <Route path="/attendance" element={<PrivateRoute><Attendance/></PrivateRoute>}/>
+      <Route path="/wfh" element={<PrivateRoute><WFH/></PrivateRoute>}/>
       <Route path="/tasks" element={<PrivateRoute><Tasks/></PrivateRoute>}/>
       <Route path="/payroll" element={<PrivateRoute><Payroll/></PrivateRoute>}/>
       <Route path="/colleges" element={<PrivateRoute><HRRoute><Colleges/></HRRoute></PrivateRoute>}/>

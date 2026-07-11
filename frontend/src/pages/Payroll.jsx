@@ -208,7 +208,7 @@ export default function Payroll() {
           </div>
           <div className="form-group"><label className="form-label">Other Deductions (₹)</label><input className="form-control" type="number" value={form.other_deductions} onChange={e => set('other_deductions', e.target.value)} /></div>
 
-          <div style={{ background: 'var(--indigo-deep)', borderRadius: 10, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <div style={{ background: 'var(--navy)', borderRadius: 10, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12.5, fontWeight: 600 }}>Net pay preview</span>
             <span style={{ color: '#fff', fontSize: 21, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>₹{netPreview.toLocaleString('en-IN')}</span>
           </div>

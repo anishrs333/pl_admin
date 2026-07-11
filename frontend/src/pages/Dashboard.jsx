@@ -62,14 +62,21 @@ function SelfDashboard() {
         </div>
       </div>
 
-      <div className="card" style={{marginBottom:20, background:'var(--indigo-deep)', border:'none'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14}}>
+      <div className="card" style={{marginBottom:20, background:'linear-gradient(135deg, #111827 0%, #1E293B 50%, #2563EB 100%)', border:'none', padding:'28px 32px', position:'relative', overflow:'hidden'}}>
+        {/* Decorative circle */}
+        <div style={{position:'absolute', top:-40, right:-40, width:160, height:160, borderRadius:'50%', background:'rgba(37,99,235,0.15)'}} />
+        <div style={{position:'absolute', bottom:-30, right:60, width:100, height:100, borderRadius:'50%', background:'rgba(37,99,235,0.1)'}} />
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14, position:'relative', zIndex:1}}>
           <div>
-            <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,marginBottom:6}}>Your ID</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:22,fontWeight:700,color:'#fff',letterSpacing:'0.02em'}}>{code}</div>
+            <div style={{fontSize:11,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:700,marginBottom:8}}>Your Identity</div>
+            <div style={{fontSize:28,fontWeight:800,color:'#FFFFFF',letterSpacing:'0.02em',marginBottom:4}}>{code}</div>
+            <div style={{fontSize:13,color:'rgba(255,255,255,0.7)',fontWeight:500}}>{user?.first_name} {user?.last_name} · {isIntern ? 'Intern' : 'Employee'}</div>
           </div>
-          <div style={{display:'flex',gap:10}}>
-            <Calendar size={32} style={{color:'rgba(255,255,255,0.25)'}}/>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{background:'rgba(255,255,255,0.1)', borderRadius:12, padding:'10px 16px', border:'1px solid rgba(255,255,255,0.15)'}}>
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:2}}>Today</div>
+              <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF'}}>{new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}</div>
+            </div>
           </div>
         </div>
       </div>

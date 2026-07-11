@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Clock, GraduationCap, UserSearch, ClipboardList, DollarSign, Building2, Briefcase, LogOut, User as UserIcon, KeyRound } from 'lucide-react'
+import { LayoutDashboard, Users, Clock, GraduationCap, UserSearch, ClipboardList, DollarSign, Building2, Briefcase, LogOut, User as UserIcon, KeyRound, Home } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
 
@@ -12,6 +12,7 @@ const hrNav = [
   ]},
   { section: 'Operations', items: [
     { to: '/attendance', label: 'Attendance', icon: Clock },
+    { to: '/wfh', label: 'Work From Home', icon: Home },
     { to: '/tasks', label: 'Tasks', icon: ClipboardList },
     { to: '/payroll', label: 'Payroll', icon: DollarSign },
     { to: '/colleges', label: 'Colleges', icon: Building2 },
@@ -27,6 +28,7 @@ const selfNav = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
     { to: '/profile', label: 'My Profile', icon: UserIcon },
     { to: '/attendance', label: 'Attendance', icon: Clock },
+    { to: '/wfh', label: 'Work From Home', icon: Home },
     { to: '/tasks', label: 'My Tasks', icon: ClipboardList },
     { to: '/payroll', label: 'My Payslips', icon: DollarSign },
   ]},

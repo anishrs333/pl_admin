@@ -52,7 +52,7 @@ export default function NotificationBell() {
         <div style={{
           position: 'absolute', bottom: 44, left: 0, width: 340, background: '#fff', borderRadius: 12,
           boxShadow: '0 -8px 32px rgba(0,0,0,0.20)', border: '1px solid var(--border)', zIndex: 1000,
-          maxHeight: 420, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          maxHeight: 420, display: 'flex', flexDirection: 'column', overflow: 'hidden', color: 'var(--ink)'
         }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: 14 }}>Notifications {count > 0 && <span style={{ background: 'var(--indigo)', color: '#fff', borderRadius: 99, padding: '1px 7px', fontSize: 11, marginLeft: 4 }}>{count}</span>}</span>

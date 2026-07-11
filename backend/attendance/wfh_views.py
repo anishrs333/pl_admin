@@ -5,13 +5,14 @@ from django.utils import timezone
 from accounts.permissions import IsHR, IsHRorSelfReadOnly
 from .models import WorkFromHome
 from .wfh_serializers import WorkFromHomeSerializer
+from .views import _get_self_target
 
 
 class WorkFromHomeViewSet(viewsets.ModelViewSet):
     """Work From Home request management."""
     serializer_class = WorkFromHomeSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['employee__full_name', 'reason']
+    search_fields = ['employee__full_name', 'intern__name', 'reason', 'task_description']
     ordering = ['-created_at']
 
     def get_permissions(self):
@@ -23,20 +24,30 @@ class WorkFromHomeViewSet(viewsets.ModelViewSet):
             return [IsHRorSelfReadOnly()]
 
     def get_queryset(self):
-        qs = WorkFromHome.objects.select_related('employee', 'reviewer').all()
+        qs = WorkFromHome.objects.select_related('employee', 'intern', 'reviewer').all()
         user = self.request.user
         if user.role == 'hr' or user.is_superuser:
             return qs
-        return qs.filter(employee__user=user)
+            
+        kind, profile = _get_self_target(user)
+        if kind == 'employee':
+            return qs.filter(employee=profile)
+        if kind == 'intern':
+            return qs.filter(intern=profile)
+        return qs.none()
 
     def perform_create(self, serializer):
         user = self.request.user
         if not (user.role == 'hr' or user.is_superuser):
-            if hasattr(user, 'employee_profile'):
-                serializer.save(employee=user.employee_profile)
+            kind, profile = _get_self_target(user)
+            if kind == 'employee':
+                serializer.save(employee=profile)
+            elif kind == 'intern':
+                serializer.save(intern=profile)
             else:
-                raise serializers.ValidationError('No employee profile found.')
+                raise serializers.ValidationError('No employee/intern profile found.')
         else:
+            # HR creating on behalf of someone
             serializer.save()
 
     @action(detail=True, methods=['post'])
@@ -55,13 +66,14 @@ class WorkFromHomeViewSet(viewsets.ModelViewSet):
         
         try:
             from notifications.utils import notify
+            recipient = wfh.employee.user if wfh.employee else wfh.intern.user
             notify(
-                recipient=wfh.employee.user,
+                recipient=recipient,
                 notification_type='wfh_approved',
                 title='Work From Home Approved',
-                message=f'Your WFH request from {wfh.from_date} to {wfh.to_date} has been approved'
+                message=f'Your WFH request for {wfh.date} has been approved'
             )
-        except:
+        except Exception:
             pass
         
         return Response(WorkFromHomeSerializer(wfh).data)
@@ -82,13 +94,14 @@ class WorkFromHomeViewSet(viewsets.ModelViewSet):
         
         try:
             from notifications.utils import notify
+            recipient = wfh.employee.user if wfh.employee else wfh.intern.user
             notify(
-                recipient=wfh.employee.user,
+                recipient=recipient,
                 notification_type='wfh_rejected',
                 title='Work From Home Rejected',
-                message=f'Your WFH request from {wfh.from_date} to {wfh.to_date} has been rejected. Reason: {wfh.reviewer_notes}'
+                message=f'Your WFH request for {wfh.date} has been rejected. Reason: {wfh.reviewer_notes}'
             )
-        except:
+        except Exception:
             pass
         
         return Response(WorkFromHomeSerializer(wfh).data)

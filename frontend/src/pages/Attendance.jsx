@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Clock, CheckCircle, XCircle, Search, Plus, CalendarDays, FileText, ChevronDown, Users, GraduationCap } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, Search, Plus, CalendarDays, FileText, ChevronDown, Users, GraduationCap, MapPin, Briefcase } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
@@ -20,9 +20,8 @@ const STATUS_BADGE = {
   rejected: 'badge-red',
 }
 
-function LeaveForm({ employees = [], isHR, onClose, onSuccess }) {
+function LeaveForm({ isHR, onClose, onSuccess }) {
   const [form, setForm] = useState({
-    employee: '',
     leave_type: 'sick',
     from_date: '',
     to_date: '',
@@ -38,9 +37,7 @@ function LeaveForm({ employees = [], isHR, onClose, onSuccess }) {
     if (form.from_date > form.to_date) { toast.error('End date must be after start date'); return }
     setSaving(true)
     try {
-      const payload = { ...form }
-      if (!payload.employee) delete payload.employee // Don't send empty employee string
-      await api.post('/attendance/leaves/', payload)
+      await api.post('/attendance/leaves/', form)
       toast.success('Leave request submitted')
       onSuccess()
       onClose()
@@ -157,6 +154,13 @@ export default function Attendance() {
     }
   })
 
+  // We should also check for approved WFH today for self-service
+  const { data: wfhData } = useQuery({
+    queryKey: ['wfh-today'],
+    queryFn: () => api.get('/attendance/wfh/').then(r => r.data),
+    enabled: !isHR
+  })
+
   const checkinMutation = useMutation({
     mutationFn: (id) => api.post('/attendance/checkin/', { employee_id: id }),
     onSuccess: () => { qc.invalidateQueries(['attendance-today']); qc.invalidateQueries(['attendance-my-status']); toast.success('Logged in successfully!') },
@@ -197,11 +201,28 @@ export default function Attendance() {
     const myEmpId = user?.profile?.id
     const myAtt = myStatus
 
+    // Check if WFH today
+    const wfhRequests = wfhData?.results || wfhData || []
+    const todayWfh = wfhRequests.find(r => r.status === 'approved' && r.date === new Date().toISOString().split('T')[0])
+    
+    // Progress calculation
+    const shiftHours = todayWfh ? todayWfh.expected_hours : 8
+    const workHours = myAtt?.work_hours || 0
+    let currentHours = workHours
+    if (myAtt?.check_in && !myAtt?.check_out) {
+      const ms = new Date() - new Date(myAtt.check_in)
+      currentHours = ms / (1000 * 60 * 60)
+    }
+    const progressPercent = Math.min((currentHours / shiftHours) * 100, 100)
+
     return (
       <div>
         <div className="page-header">
           <div><h2 className="page-header-title">My Attendance</h2><p className="page-header-sub">{new Date().toDateString()}</p></div>
-          <button className="btn btn-primary" onClick={() => setLeaveModal(true)}><Plus size={16} /> Apply Leave</button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <a href="/wfh" className="btn btn-secondary"><Plus size={16} /> Apply WFH</a>
+            <button className="btn btn-primary" onClick={() => setLeaveModal(true)}><Plus size={16} /> Apply Leave</button>
+          </div>
         </div>
 
         {/* Tab switcher */}
@@ -214,47 +235,84 @@ export default function Attendance() {
         </div>
 
         {tab === 'attendance' && (
-          <div className="card" style={{ maxWidth: 540, margin: '0 auto' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 28, alignItems: 'center', padding: '32px 10px' }}>
-              <div style={{ width: 92, height: 92, borderRadius: '50%', background: myAtt?.check_in ? 'var(--indigo-50)' : 'var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid', borderColor: myAtt?.check_in ? 'var(--indigo)' : 'var(--line)', transition: 'all 0.3s', boxShadow: myAtt?.check_in ? '0 0 20px rgba(37,99,235,0.15)' : 'none' }}>
-                <Clock size={38} style={{ color: myAtt?.check_in ? 'var(--indigo)' : 'var(--slate)' }} />
+          <div className="attendance-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
+            
+            {/* Main Action Card */}
+            <div className="card" style={{ padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ 
+                width: 140, height: 140, borderRadius: '50%', 
+                background: myAtt?.check_in ? (myAtt?.check_out ? 'var(--slate-100)' : 'var(--indigo-50)') : 'var(--paper)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                border: '4px solid', borderColor: myAtt?.check_in ? (myAtt?.check_out ? 'var(--slate-200)' : 'var(--indigo)') : 'var(--line)', 
+                boxShadow: myAtt?.check_in && !myAtt?.check_out ? '0 0 30px rgba(37,99,235,0.15)' : 'none',
+                position: 'relative'
+              }}>
+                <Clock size={48} style={{ color: myAtt?.check_in ? (myAtt?.check_out ? 'var(--slate-400)' : 'var(--indigo)') : 'var(--slate)' }} />
               </div>
               
-              <div style={{ display: 'flex', width: '100%', justifyContent: 'space-around', textAlign: 'center', background: 'var(--paper)', padding: '24px 0', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line-light)' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: 'var(--slate)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Login Time</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, color: myAtt?.check_in ? 'var(--indigo)' : 'var(--slate)' }}>{myAtt?.check_in ? new Date(myAtt.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                </div>
-                <div style={{ width: 1, background: 'var(--line)', margin: '0 10px' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: 'var(--slate)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Logout Time</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, color: myAtt?.check_out ? 'var(--ink)' : 'var(--slate)' }}>{myAtt?.check_out ? new Date(myAtt.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                </div>
+              <div style={{ marginTop: 24, textAlign: 'center' }}>
+                <h3 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px 0', color: 'var(--ink)' }}>
+                  {myAtt?.check_out ? 'Shift Completed' : myAtt?.check_in ? 'You are checked in' : 'Good Morning!'}
+                </h3>
+                <p style={{ fontSize: 14, color: 'var(--slate)', margin: 0 }}>
+                  {myAtt?.check_out ? 'Great job today.' : myAtt?.check_in ? 'Have a productive day.' : 'Ready to start your day?'}
+                </p>
               </div>
-              
-              {myAtt?.work_hours && (
-                <div style={{ background: 'var(--green-50)', borderRadius: 'var(--radius-md)', padding: '12px 24px', fontSize: 15, fontWeight: 600, color: '#047857', width: '100%', textAlign: 'center' }}>
-                  ✓ Logged {myAtt.work_hours} hours today
-                </div>
-              )}
-              
-              <div style={{ width: '100%', display: 'flex', gap: 16 }}>
+
+              <div style={{ width: '100%', display: 'flex', gap: 16, marginTop: 32 }}>
                 {!myAtt?.check_in && (
-                  <button className="btn btn-primary" style={{ flex: 1, padding: '16px', fontSize: 15, borderRadius: 'var(--radius-lg)' }} onClick={() => checkinMutation.mutate(myEmpId)} disabled={checkinMutation.isPending}>
-                    {checkinMutation.isPending ? 'Logging in…' : 'Login for the day'}
+                  <button className="btn btn-primary" style={{ flex: 1, padding: '16px', fontSize: 16, borderRadius: 'var(--radius-lg)' }} onClick={() => checkinMutation.mutate(myEmpId)} disabled={checkinMutation.isPending}>
+                    {checkinMutation.isPending ? 'Logging in…' : 'Check In'}
                   </button>
                 )}
                 {myAtt?.check_in && !myAtt?.check_out && (
-                  <button className="btn btn-amber" style={{ flex: 1, padding: '16px', fontSize: 15, borderRadius: 'var(--radius-lg)' }} onClick={() => checkoutMutation.mutate(myEmpId)} disabled={checkoutMutation.isPending}>
-                    {checkoutMutation.isPending ? 'Logging out…' : 'Logout & End Day'}
+                  <button className="btn btn-amber" style={{ flex: 1, padding: '16px', fontSize: 16, borderRadius: 'var(--radius-lg)' }} onClick={() => checkoutMutation.mutate(myEmpId)} disabled={checkoutMutation.isPending}>
+                    {checkoutMutation.isPending ? 'Logging out…' : 'Check Out'}
                   </button>
                 )}
                 {myAtt?.check_out && (
-                  <div style={{ flex: 1, padding: '16px', fontSize: 15, fontWeight: 600, color: 'var(--slate)', textAlign: 'center', background: 'var(--paper)', borderRadius: 'var(--radius-lg)' }}>
-                    Shift Completed
-                  </div>
+                  <button className="btn btn-ghost" style={{ flex: 1, padding: '16px', fontSize: 16, borderRadius: 'var(--radius-lg)' }} disabled>
+                    Checked Out
+                  </button>
                 )}
               </div>
+            </div>
+
+            {/* Info Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              
+              <div className="card">
+                <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', color: 'var(--ink)' }}>Today's Summary</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                  <div style={{ background: 'var(--paper)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--slate)', fontSize: 13, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Clock size={16} /> Check In
+                    </div>
+                    <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-mono)', color: myAtt?.check_in ? 'var(--ink)' : 'var(--slate)' }}>
+                      {myAtt?.check_in ? new Date(myAtt.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                    </div>
+                  </div>
+                  <div style={{ background: 'var(--paper)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--slate)', fontSize: 13, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <CheckCircle size={16} /> Check Out
+                    </div>
+                    <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-mono)', color: myAtt?.check_out ? 'var(--ink)' : 'var(--slate)' }}>
+                      {myAtt?.check_out ? new Date(myAtt.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                    <span style={{ color: 'var(--slate)' }}>Working Hours</span>
+                    <span style={{ color: 'var(--indigo)' }}>{currentHours.toFixed(1)} / {shiftHours}h</span>
+                  </div>
+                  <div style={{ height: 8, background: 'var(--indigo-50)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', background: 'var(--indigo)', width: `${progressPercent}%`, transition: 'width 0.5s ease-out' }} />
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
@@ -376,7 +434,6 @@ export default function Attendance() {
         </div>
       )}
 
-      {/* Leave Modal removed for HR as backend only supports self-service leave requests */}
     </div>
   )
 }
