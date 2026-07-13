@@ -49,7 +49,7 @@ export default function Internships() {
           if (v !== null && v !== undefined && v !== '') fd.append(k, v)
         })
         if (picFile) fd.append('profile_picture', picFile)
-        const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
+        const cfg = { headers: { 'Content-Type': undefined } }
         return editId ? api.patch(`/internships/${editId}/`, fd, cfg) : api.post('/internships/', fd, cfg)
       } catch (err) {
         throw err

@@ -53,7 +53,7 @@ export default function Employees() {
           if (v !== null && v !== undefined && v !== '') fd.append(k, v)
         })
         if (picFile) fd.append('profile_picture', picFile)
-        const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
+        const cfg = { headers: { 'Content-Type': undefined } }
         return editId ? api.patch(`/employees/${editId}/`, fd, cfg) : api.post('/employees/', fd, cfg)
       } catch (err) {
         throw err
