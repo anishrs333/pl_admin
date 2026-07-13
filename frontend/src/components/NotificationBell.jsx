@@ -38,24 +38,21 @@ export default function NotificationBell() {
   return (
     <div style={{ position: 'relative' }} ref={panelRef}>
       <button
+        className="notif-btn"
         onClick={() => setOpen(o => !o)}
-        style={{ position: 'relative', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.8)' }}
         title="Notifications"
       >
         <Bell size={17} />
-        {count > 0 && (
-          <span style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: '50%', background: '#F87171', border: '1.5px solid var(--indigo-deep)' }} />
-        )}
+        {count > 0 && <span className="notif-dot" />}
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute', bottom: 44, left: 0, width: 340, background: '#fff', borderRadius: 12,
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.20)', border: '1px solid var(--border)', zIndex: 1000,
-          maxHeight: 420, display: 'flex', flexDirection: 'column', overflow: 'hidden', color: 'var(--ink)'
-        }}>
+        <div className="notif-panel">
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Notifications {count > 0 && <span style={{ background: 'var(--indigo)', color: '#fff', borderRadius: 99, padding: '1px 7px', fontSize: 11, marginLeft: 4 }}>{count}</span>}</span>
+            <span style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              Notifications
+              {count > 0 && <span style={{ background: 'var(--indigo)', color: '#fff', borderRadius: 99, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>{count}</span>}
+            </span>
             {count > 0 && (
               <button onClick={markAllRead} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--indigo)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <CheckCheck size={13} /> Mark all read
@@ -64,8 +61,8 @@ export default function NotificationBell() {
           </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {notifications.length === 0 ? (
-              <div style={{ padding: 32, textAlign: 'center', color: 'var(--slate)', fontSize: 13 }}>
-                <Bell size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
+              <div style={{ padding: 36, textAlign: 'center', color: 'var(--slate)', fontSize: 13 }}>
+                <Bell size={32} style={{ opacity: 0.2, marginBottom: 8 }} />
                 <div>No notifications yet</div>
               </div>
             ) : notifications.map(n => (
@@ -73,7 +70,7 @@ export default function NotificationBell() {
                 key={n.id}
                 onClick={() => !n.is_read && markRead(n.id)}
                 style={{
-                  padding: '12px 16px', borderBottom: '1px solid var(--border)', cursor: n.is_read ? 'default' : 'pointer',
+                  padding: '12px 16px', borderBottom: '1px solid var(--border-light)', cursor: n.is_read ? 'default' : 'pointer',
                   background: n.is_read ? '#fff' : 'var(--indigo-50)', display: 'flex', gap: 10, alignItems: 'flex-start',
                   transition: 'background 0.15s',
                 }}

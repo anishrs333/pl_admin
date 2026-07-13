@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit2, Trash2, Camera, Users } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Camera, Users, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
@@ -9,6 +9,9 @@ import IDBadge from '../components/IDBadge'
 const statusBadge = { active: 'badge-green', inactive: 'badge-gray', probation: 'badge-amber', on_leave: 'badge-indigo' }
 const avatarColors = ['#2563EB', '#7C3AED', '#10B981', '#F59E0B']
 const emptyForm = { full_name: '', email: '', mobile: '', department: '', designation: '', joining_date: '', salary: '', address: '', emergency_contact_name: '', emergency_contact: '', status: 'active' }
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
 
 function Avatar({ emp, size = 36 }) {
   if (emp.profile_picture_url) {
@@ -43,27 +46,59 @@ export default function Employees() {
 
   const saveMutation = useMutation({
     mutationFn: async (d) => {
-      const fd = new FormData()
-      Object.entries(d).forEach(([k, v]) => {
-        if (['profile_picture', 'profile_picture_url', 'document'].includes(k)) return
-        if (v !== null && v !== undefined && v !== '') fd.append(k, v)
-      })
-      if (picFile) fd.append('profile_picture', picFile)
-      const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
-      return editId ? api.patch(`/employees/${editId}/`, fd, cfg) : api.post('/employees/', fd, cfg)
+      try {
+        const fd = new FormData()
+        Object.entries(d).forEach(([k, v]) => {
+          if (['profile_picture', 'profile_picture_url', 'document'].includes(k)) return
+          if (v !== null && v !== undefined && v !== '') fd.append(k, v)
+        })
+        if (picFile) fd.append('profile_picture', picFile)
+        const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
+        return editId ? api.patch(`/employees/${editId}/`, fd, cfg) : api.post('/employees/', fd, cfg)
+      } catch (err) {
+        throw err
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries(['employees'])
-      setModal(false); setForm(emptyForm); setEditId(null); setPicFile(null); setPicPreview(null)
+      closeModal()
       toast.success(editId ? 'Employee updated' : 'Employee added — login provisioned')
     },
-    onError: (e) => toast.error(Object.values(e.response?.data || {})[0]?.[0] || 'Error saving')
+    onError: (e) => {
+      // Safe error extraction — handles malformed responses, non-JSON, 413, network errors
+      try {
+        const data = e.response?.data
+        if (typeof data === 'string') {
+          toast.error(data.slice(0, 200) || 'Error saving')
+        } else if (data && typeof data === 'object') {
+          const firstVal = Object.values(data)[0]
+          const msg = Array.isArray(firstVal) ? firstVal[0] : (firstVal || data.detail || 'Error saving')
+          toast.error(String(msg).slice(0, 200))
+        } else {
+          toast.error(e.message || 'Error saving employee')
+        }
+      } catch {
+        toast.error('An unexpected error occurred')
+      }
+    }
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/employees/${id}/`),
     onSuccess: () => { qc.invalidateQueries(['employees']); toast.success('Employee removed') }
   })
+
+  const closeModal = () => {
+    setModal(false)
+    setForm(emptyForm)
+    setEditId(null)
+    // Revoke blob URL to prevent memory leaks
+    if (picPreview && picPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(picPreview)
+    }
+    setPicFile(null)
+    setPicPreview(null)
+  }
 
   const openEdit = (emp) => {
     setForm({ ...emp, department: emp.department || '', designation: emp.designation || '' })
@@ -76,11 +111,36 @@ export default function Employees() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handlePic = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) { toast.error('Image must be under 2MB'); return }
+
+    // Validate file type (MIME check, not just extension)
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error('Please upload a valid image (JPEG, PNG, GIF, or WebP)')
+      e.target.value = '' // Reset file input
+      return
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('Image must be under 2MB')
+      e.target.value = ''
+      return
+    }
+
+    // Revoke previous blob URL to avoid memory leak
+    if (picPreview && picPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(picPreview)
+    }
+
     setPicFile(file)
-    setPicPreview(URL.createObjectURL(file))
+    try {
+      setPicPreview(URL.createObjectURL(file))
+    } catch (err) {
+      toast.error('Failed to preview the image')
+      setPicFile(null)
+      setPicPreview(null)
+    }
   }
 
   const employees = data?.results || data || []
@@ -146,12 +206,12 @@ export default function Employees() {
       {modal && (
         <Modal
           title={editId ? 'Edit employee' : 'Add employee'}
-          onClose={() => setModal(false)}
+          onClose={closeModal}
           footer={
             <>
-              <button className="btn btn-secondary" onClick={() => setModal(false)}>Cancel</button>
+              <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
               <button className="btn btn-primary" onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? 'Saving…' : 'Save employee'}
+                {saveMutation.isPending ? <><Loader2 size={14} className="spin-icon" /> Saving…</> : 'Save employee'}
               </button>
             </>
           }
@@ -166,11 +226,16 @@ export default function Employees() {
                 ? <img src={picPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <Camera size={24} style={{ color: 'var(--slate)' }} />
               }
+              {saveMutation.isPending && picFile && (
+                <div className="upload-overlay">
+                  <div className="spinner" style={{ width: 20, height: 20 }} />
+                </div>
+              )}
             </div>
             <button type="button" className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => picRef.current?.click()}>
               {picPreview ? 'Change photo' : 'Upload photo'}
             </button>
-            <input ref={picRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePic} />
+            <input ref={picRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display: 'none' }} onChange={handlePic} />
           </div>
 
           <div className="form-row">

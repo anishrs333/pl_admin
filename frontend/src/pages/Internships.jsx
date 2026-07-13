@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit2, Trash2, Camera, GraduationCap } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Camera, GraduationCap, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
@@ -8,6 +8,9 @@ import IDBadge from '../components/IDBadge'
 
 const statusBadge = { active: 'badge-green', completed: 'badge-gray', terminated: 'badge-red' }
 const emptyForm = { name: '', email: '', mobile: '', college_name: '', domain: '', description: '', mentor: '', start_date: '', end_date: '', status: 'active', performance_score: '', certificate_issued: false }
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
 
 function Avatar({ intern, size = 36 }) {
   if (intern.profile_picture_url) {
@@ -39,21 +42,41 @@ export default function Internships() {
 
   const saveMutation = useMutation({
     mutationFn: async (d) => {
-      const fd = new FormData()
-      Object.entries(d).forEach(([k, v]) => {
-        if (['profile_picture', 'profile_picture_url', 'document'].includes(k)) return
-        if (v !== null && v !== undefined && v !== '') fd.append(k, v)
-      })
-      if (picFile) fd.append('profile_picture', picFile)
-      const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
-      return editId ? api.patch(`/internships/${editId}/`, fd, cfg) : api.post('/internships/', fd, cfg)
+      try {
+        const fd = new FormData()
+        Object.entries(d).forEach(([k, v]) => {
+          if (['profile_picture', 'profile_picture_url', 'document'].includes(k)) return
+          if (v !== null && v !== undefined && v !== '') fd.append(k, v)
+        })
+        if (picFile) fd.append('profile_picture', picFile)
+        const cfg = { headers: { 'Content-Type': 'multipart/form-data' } }
+        return editId ? api.patch(`/internships/${editId}/`, fd, cfg) : api.post('/internships/', fd, cfg)
+      } catch (err) {
+        throw err
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries(['internships'])
       closeModal()
       toast.success(editId ? 'Intern updated' : 'Intern added — login provisioned')
     },
-    onError: (e) => toast.error(e.response?.data?.detail || JSON.stringify(e.response?.data) || 'Error saving')
+    onError: (e) => {
+      // Safe error extraction — handles malformed responses, non-JSON, 413, network errors
+      try {
+        const data = e.response?.data
+        if (typeof data === 'string') {
+          toast.error(data.slice(0, 200) || 'Error saving')
+        } else if (data && typeof data === 'object') {
+          const firstVal = Object.values(data)[0]
+          const msg = Array.isArray(firstVal) ? firstVal[0] : (firstVal || data.detail || 'Error saving')
+          toast.error(String(msg).slice(0, 200))
+        } else {
+          toast.error(e.message || 'Error saving intern')
+        }
+      } catch {
+        toast.error('An unexpected error occurred')
+      }
+    }
   })
 
   const deleteMutation = useMutation({
@@ -65,6 +88,9 @@ export default function Internships() {
     setModal(false)
     setForm(emptyForm)
     setEditId(null)
+    if (picPreview && picPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(picPreview)
+    }
     setPicFile(null)
     setPicPreview(null)
   }
@@ -88,11 +114,33 @@ export default function Internships() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handlePic = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) { toast.error('Image must be under 2MB'); return }
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error('Please upload a valid image (JPEG, PNG, GIF, or WebP)')
+      e.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('Image must be under 2MB')
+      e.target.value = ''
+      return
+    }
+
+    if (picPreview && picPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(picPreview)
+    }
+
     setPicFile(file)
-    setPicPreview(URL.createObjectURL(file))
+    try {
+      setPicPreview(URL.createObjectURL(file))
+    } catch (err) {
+      toast.error('Failed to preview the image')
+      setPicFile(null)
+      setPicPreview(null)
+    }
   }
 
   const interns = data?.results || data || []
@@ -158,7 +206,7 @@ export default function Internships() {
             <>
               <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
               <button className="btn btn-primary" onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? 'Saving…' : 'Save intern'}
+                {saveMutation.isPending ? <><Loader2 size={14} className="spin-icon" /> Saving…</> : 'Save intern'}
               </button>
             </>
           }
@@ -172,11 +220,16 @@ export default function Internships() {
                 ? <img src={picPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <Camera size={24} style={{ color: 'var(--slate)' }} />
               }
+              {saveMutation.isPending && picFile && (
+                <div className="upload-overlay">
+                  <div className="spinner" style={{ width: 20, height: 20 }} />
+                </div>
+              )}
             </div>
             <button type="button" className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => picRef.current?.click()}>
               {picPreview ? 'Change photo' : 'Upload photo'}
             </button>
-            <input ref={picRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePic} />
+            <input ref={picRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display: 'none' }} onChange={handlePic} />
           </div>
 
           <div className="form-row">

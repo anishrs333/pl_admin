@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Users, Clock, GraduationCap, UserSearch, ClipboardList, DollarSign, Building2, Briefcase, LogOut, User as UserIcon, KeyRound, Home } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import NotificationBell from './NotificationBell'
 
 const hrNav = [
   { section: 'Console', items: [
@@ -76,7 +75,6 @@ export default function Sidebar({ isOpen, onClose }) {
           <div className="user-name">{user?.first_name} {user?.last_name}</div>
           <div className="user-role">{code || (isHR ? 'HR Administrator' : user?.role)}</div>
         </div>
-        <NotificationBell />
         <button onClick={logout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', padding: '4px' }} title="Sign out">
           <LogOut size={16} />
         </button>
