@@ -84,11 +84,11 @@ class Employee(models.Model):
         self.user = user
         self.user_id = user.id
         Employee.objects.filter(pk=self.pk).update(user=user)
-        self._send_welcome_email()
+        self._email_sent = self._send_welcome_email()
 
     def _send_welcome_email(self):
         from accounts.emails import send_welcome_email
-        send_welcome_email(
+        return send_welcome_email(
             full_name=self.full_name,
             email=self.email,
             login_id=self.employee_id,

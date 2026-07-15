@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit2, Trash2, Camera, Users, Loader2 } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Camera, Users, Loader2, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
@@ -59,10 +59,14 @@ export default function Employees() {
         throw err
       }
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries(['employees'])
       closeModal()
-      toast.success(editId ? 'Employee updated' : 'Employee added — login provisioned')
+      if (res && res.data && res.data.warning) {
+        toast.error(res.data.warning, { duration: 6000 })
+      } else {
+        toast.success(editId ? 'Employee updated' : 'Employee added — login provisioned')
+      }
     },
     onError: (e) => {
       // Safe error extraction — handles malformed responses, non-JSON, 413, network errors
@@ -86,6 +90,12 @@ export default function Employees() {
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/employees/${id}/`),
     onSuccess: () => { qc.invalidateQueries(['employees']); toast.success('Employee removed') }
+  })
+
+  const resendEmailMutation = useMutation({
+    mutationFn: (id) => api.post(`/employees/${id}/resend_welcome_email/`),
+    onSuccess: (res) => toast.success(res.data?.detail || 'Email resent successfully'),
+    onError: (e) => toast.error(e.response?.data?.detail || 'Failed to resend email')
   })
 
   const closeModal = () => {
@@ -190,6 +200,7 @@ export default function Employees() {
                     <td><span className={`badge ${statusBadge[emp.status] || 'badge-gray'}`}>{emp.status.replace('_', ' ')}</span></td>
                     <td>
                       <div className="action-btns">
+                        <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /></button>
                         <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
                         <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /></button>
                       </div>

@@ -33,6 +33,27 @@ class InternViewSet(viewsets.ModelViewSet):
         ctx['request'] = self.request
         return ctx
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        response_data = serializer.data
+        if hasattr(serializer.instance, '_email_sent') and not serializer.instance._email_sent:
+            response_data['warning'] = 'Intern created, but welcome email failed to send. Please check SMTP settings.'
+        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsHR])
+    def resend_welcome_email(self, request, pk=None):
+        intern = self.get_object()
+        success = intern._send_welcome_email()
+        if success:
+            return Response({'detail': 'Welcome email resent successfully.'})
+        return Response(
+            {'detail': 'Failed to send welcome email. Check SMTP settings.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 class InternTaskViewSet(viewsets.ModelViewSet):
     """Daily task tracking for interns (separate from the shared Task app)."""

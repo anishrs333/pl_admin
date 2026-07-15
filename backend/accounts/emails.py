@@ -41,5 +41,7 @@ def send_welcome_email(*, full_name, email, login_id, password, role_label, extr
         msg.attach_alternative(html_body, 'text/html')
         msg.send(fail_silently=False)
         logger.info('Welcome email sent to %s <%s>', full_name, email)
+        return True
     except Exception as exc:
         logger.warning('Welcome email failed for %s <%s>: %s', full_name, email, exc)
+        return False
