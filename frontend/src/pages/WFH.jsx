@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 import { useAuth } from '../context/AuthContext'
 
 const emptyForm = { date: '', reason: '', working_address: '', expected_hours: 8, task_description: '' }
@@ -87,62 +89,98 @@ export default function WFH() {
 
       <div className="card" style={{ padding: 0 }}>
         {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-          <div className="table-wrap" style={{ margin: 0, border: 'none', boxShadow: 'none' }}>
-            <table>
-              <thead>
-                <tr>
-                  {isHR && <th>Employee</th>}
-                  <th>Date</th>
-                  <th>Location & Tasks</th>
-                  <th>Status</th>
-                  {isHR && <th>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map(r => (
-                  <tr key={r.id}>
-                    {isHR && (
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{r.person_name}</div>
-                        <IDBadge code={r.person_code} label={r.person_type} size="sm" />
-                      </td>
-                    )}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Calendar size={14} style={{color:'var(--ink-light)'}}/> {r.date}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-light)', marginTop: 4 }}>{r.expected_hours} hours</div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--ink)' }}>
-                        <MapPin size={12} style={{color:'var(--ink-light)'}}/> {r.working_address || 'Not specified'}
+          <ResponsiveTable
+            headers={isHR ? ['Employee', 'Date', 'Location & Tasks', 'Status', 'Actions'] : ['Date', 'Location & Tasks', 'Status']}
+            data={requests}
+            renderRow={(r) => (
+              <tr key={r.id}>
+                {isHR && (
+                  <td>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{r.person_name}</div>
+                    <IDBadge code={r.person_code} label={r.person_type} size="sm" />
+                  </td>
+                )}
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Calendar size={14} style={{color:'var(--ink-light)'}}/> {r.date}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-light)', marginTop: 4 }}>{r.expected_hours} hours</div>
+                </td>
+                <td>
+                  <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--ink)' }}>
+                    <MapPin size={12} style={{color:'var(--ink-light)'}}/> {r.working_address || 'Not specified'}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4 }}>{r.task_description}</div>
+                </td>
+                <td>
+                  <span className={`badge ${r.status === 'approved' ? 'badge-green' : r.status === 'rejected' ? 'badge-red' : 'badge-amber'}`}>
+                    {r.status.toUpperCase()}
+                  </span>
+                  {r.reviewer_notes && <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4, maxWidth: 200 }}>Note: {r.reviewer_notes}</div>}
+                </td>
+                {isHR && (
+                  <td>
+                    {r.status === 'pending' ? (
+                      <div className="action-btns">
+                        <button className="btn btn-sm btn-success" onClick={() => setRemarksModal({ open: true, type: 'approve', id: r.id, notes: '' })}>
+                          <CheckCircle size={14} /> Approve
+                        </button>
+                        <button className="btn btn-sm btn-danger" onClick={() => setRemarksModal({ open: true, type: 'reject', id: r.id, notes: '' })}>
+                          <XCircle size={14} /> Reject
+                        </button>
                       </div>
-                      <div style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4 }}>{r.task_description}</div>
-                    </td>
-                    <td>
-                      <span className={`badge ${r.status === 'approved' ? 'badge-green' : r.status === 'rejected' ? 'badge-red' : 'badge-amber'}`}>
-                        {r.status.toUpperCase()}
-                      </span>
-                      {r.reviewer_notes && <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4, maxWidth: 200 }}>Note: {r.reviewer_notes}</div>}
-                    </td>
-                    {isHR && (
-                      <td>
-                        {r.status === 'pending' ? (
-                          <div className="action-btns">
-                            <button className="btn btn-sm btn-success" onClick={() => setRemarksModal({ open: true, type: 'approve', id: r.id, notes: '' })}>
-                              <CheckCircle size={14} /> Approve
-                            </button>
-                            <button className="btn btn-sm btn-danger" onClick={() => setRemarksModal({ open: true, type: 'reject', id: r.id, notes: '' })}>
-                              <XCircle size={14} /> Reject
-                            </button>
-                          </div>
-                        ) : <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>Reviewed by {r.reviewer_name}</span>}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {requests.length === 0 && <div className="empty-state"><Home size={44} /><p>No WFH requests found.</p></div>}
-          </div>
+                    ) : <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>Reviewed by {r.reviewer_name}</span>}
+                  </td>
+                )}
+              </tr>
+            )}
+            renderCard={(r) => (
+              <MobileCard
+                key={r.id}
+                title={isHR ? r.person_name : r.date}
+                subtitle={isHR ? <IDBadge code={r.person_code} label={r.person_type} size="sm" /> : `${r.expected_hours} hours`}
+                badges={
+                  <>
+                    {isHR && <span className="badge badge-gray" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> {r.date}</span>}
+                    <span className={`badge ${r.status === 'approved' ? 'badge-green' : r.status === 'rejected' ? 'badge-red' : 'badge-amber'}`}>
+                      {r.status.toUpperCase()}
+                    </span>
+                  </>
+                }
+                actions={
+                  isHR ? (
+                    r.status === 'pending' ? (
+                      <>
+                        <button className="action-btn" style={{ color: 'var(--success)' }} onClick={() => setRemarksModal({ open: true, type: 'approve', id: r.id, notes: '' })}>
+                          <CheckCircle size={14} /> Approve
+                        </button>
+                        <button className="action-btn" style={{ color: 'var(--danger)' }} onClick={() => setRemarksModal({ open: true, type: 'reject', id: r.id, notes: '' })}>
+                          <XCircle size={14} /> Reject
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: 12, color: 'var(--ink-light)', width: '100%', textAlign: 'center' }}>Reviewed by {r.reviewer_name}</span>
+                    )
+                  ) : null
+                }
+              >
+                <div style={{ marginTop: 12, padding: 12, background: 'var(--surface)', borderRadius: 8, fontSize: 13 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: 'var(--ink-light)' }}>
+                    <MapPin size={14} />
+                    <span>{r.working_address || 'Location not specified'}</span>
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: 4, color: 'var(--ink)', fontSize: 12 }}>Task Description:</strong>
+                    <div style={{ color: 'var(--ink-light)' }}>{r.task_description}</div>
+                  </div>
+                  {r.reviewer_notes && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+                      <strong style={{ display: 'block', marginBottom: 4, color: 'var(--ink)', fontSize: 12 }}>Reviewer Note:</strong>
+                      <div style={{ color: 'var(--ink-light)' }}>{r.reviewer_notes}</div>
+                    </div>
+                  )}
+                </div>
+              </MobileCard>
+            )}
+          />
         )}
       </div>
 

@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 
 const statusBadge = { active: 'badge-green', inactive: 'badge-gray', probation: 'badge-amber', on_leave: 'badge-indigo' }
 const avatarColors = ['#2563EB', '#7C3AED', '#10B981', '#F59E0B']
@@ -180,37 +182,52 @@ export default function Employees() {
         </div>
 
         {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-          <div className="table-wrap" style={{ margin: 0 }}>
-            <table>
-              <thead>
-                <tr><th>Employee</th><th>ID</th><th>Department</th><th>Designation</th><th>Status</th><th>Actions</th></tr>
-              </thead>
-              <tbody>
-                {employees.map(emp => (
-                  <tr key={emp.id}>
-                    <td>
-                      <div className="name-cell">
-                        <Avatar emp={emp} />
-                        <div><div className="name">{emp.full_name}</div><div className="sub">{emp.email}</div></div>
-                      </div>
-                    </td>
-                    <td><IDBadge code={emp.employee_id} label="EMP" size="sm" /></td>
-                    <td style={{ fontSize: 13 }}>{emp.department_name || '—'}</td>
-                    <td style={{ fontSize: 13 }}>{emp.designation_name || '—'}</td>
-                    <td><span className={`badge ${statusBadge[emp.status] || 'badge-gray'}`}>{emp.status.replace('_', ' ')}</span></td>
-                    <td>
-                      <div className="action-btns">
-                        <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /></button>
-                        <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
-                        <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {employees.length === 0 && <div className="empty-state"><Users size={44} /><p>No employees yet.</p></div>}
-          </div>
+          <ResponsiveTable
+            headers={['Employee', 'ID', 'Department', 'Designation', 'Status', 'Actions']}
+            data={employees}
+            renderRow={(emp) => (
+              <tr key={emp.id}>
+                <td>
+                  <div className="name-cell">
+                    <Avatar emp={emp} />
+                    <div><div className="name">{emp.full_name}</div><div className="sub">{emp.email}</div></div>
+                  </div>
+                </td>
+                <td><IDBadge code={emp.employee_id} label="EMP" size="sm" /></td>
+                <td style={{ fontSize: 13 }}>{emp.department_name || '—'}</td>
+                <td style={{ fontSize: 13 }}>{emp.designation_name || '—'}</td>
+                <td><span className={`badge ${statusBadge[emp.status] || 'badge-gray'}`}>{emp.status.replace('_', ' ')}</span></td>
+                <td>
+                  <div className="action-btns">
+                    <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /></button>
+                    <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /></button>
+                  </div>
+                </td>
+              </tr>
+            )}
+            renderCard={(emp) => (
+              <MobileCard
+                key={emp.id}
+                avatar={<Avatar emp={emp} />}
+                title={emp.full_name}
+                subtitle={emp.email}
+                badges={
+                  <>
+                    <IDBadge code={emp.employee_id} label="EMP" size="sm" />
+                    <span className={`badge ${statusBadge[emp.status] || 'badge-gray'}`}>{emp.status.replace('_', ' ')}</span>
+                  </>
+                }
+                actions={
+                  <>
+                    <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /> Resend Email</button>
+                    <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /> Delete</button>
+                  </>
+                }
+              />
+            )}
+          />
         )}
       </div>
 

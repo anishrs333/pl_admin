@@ -144,7 +144,7 @@ export default function Login() {
       
       <style dangerouslySetInnerHTML={{__html:`
         .mobile-only-brand { display: none !important; }
-        @media (max-width: 900px) {
+        @media (max-width: 768px) {
           .login-sidebar { display: none !important; }
           .mobile-only-brand { display: flex !important; }
         }

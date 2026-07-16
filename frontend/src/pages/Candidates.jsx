@@ -4,6 +4,8 @@ import { Plus, Search, Edit2, Trash2, UserSearch } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 
 const statusBadge = { applied: 'badge-indigo', shortlisted: 'badge-amber', rejected: 'badge-red', hired: 'badge-green' }
 const emptyForm = { first_name: '', last_name: '', email: '', mobile: '', college_name: '', position_applied: '', cover_letter: '' }
@@ -70,31 +72,41 @@ export default function Candidates() {
         </div>
 
         {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-          <div className="table-wrap" style={{ margin: 0 }}>
-            <table>
-              <thead>
-                <tr><th>Candidate</th><th>Email</th><th>Position</th><th>College</th><th>Status</th><th>Actions</th></tr>
-              </thead>
-              <tbody>
-                {candidates.map(cand => (
-                  <tr key={cand.id}>
-                    <td style={{ fontWeight: 600 }}>{cand.first_name} {cand.last_name}</td>
-                    <td style={{ fontSize: 13 }}>{cand.email}</td>
-                    <td style={{ fontSize: 13 }}>{cand.position_applied || '—'}</td>
-                    <td style={{ fontSize: 13 }}>{cand.college_name || '—'}</td>
-                    <td><span className={`badge ${statusBadge[cand.status] || 'badge-gray'}`}>{cand.status}</span></td>
-                    <td>
-                      <div className="action-btns">
-                        <button className="action-btn" onClick={() => openEdit(cand)}><Edit2 size={13} /> Edit</button>
-                        <button className="action-btn" onClick={() => { if (window.confirm('Remove candidate?')) deleteMutation.mutate(cand.id) }}><Trash2 size={13} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {candidates.length === 0 && <div className="empty-state"><UserSearch size={44} /><p>No candidates yet.</p></div>}
-          </div>
+          <ResponsiveTable
+            headers={['Candidate', 'Email', 'Position', 'College', 'Status', 'Actions']}
+            data={candidates}
+            renderRow={(cand) => (
+              <tr key={cand.id}>
+                <td style={{ fontWeight: 600 }}>{cand.first_name} {cand.last_name}</td>
+                <td style={{ fontSize: 13 }}>{cand.email}</td>
+                <td style={{ fontSize: 13 }}>{cand.position_applied || '—'}</td>
+                <td style={{ fontSize: 13 }}>{cand.college_name || '—'}</td>
+                <td><span className={`badge ${statusBadge[cand.status] || 'badge-gray'}`}>{cand.status}</span></td>
+                <td>
+                  <div className="action-btns">
+                    <button className="action-btn" onClick={() => openEdit(cand)}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove candidate?')) deleteMutation.mutate(cand.id) }}><Trash2 size={13} /></button>
+                  </div>
+                </td>
+              </tr>
+            )}
+            renderCard={(cand) => (
+              <MobileCard
+                key={cand.id}
+                title={`${cand.first_name} ${cand.last_name}`}
+                subtitle={cand.email}
+                badges={
+                  <span className={`badge ${statusBadge[cand.status] || 'badge-gray'}`}>{cand.status}</span>
+                }
+                actions={
+                  <>
+                    <button className="action-btn" onClick={() => openEdit(cand)}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove candidate?')) deleteMutation.mutate(cand.id) }}><Trash2 size={13} /> Delete</button>
+                  </>
+                }
+              />
+            )}
+          />
         )}
       </div>
 

@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 
 const statusBadge = { active: 'badge-green', completed: 'badge-gray', terminated: 'badge-red' }
 const emptyForm = { name: '', email: '', mobile: '', college_name: '', domain: '', description: '', mentor: '', start_date: '', end_date: '', status: 'active', performance_score: '', certificate_issued: false }
@@ -175,37 +177,52 @@ export default function Internships() {
         </div>
 
         {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-          <div className="table-wrap" style={{ margin: 0 }}>
-            <table>
-              <thead>
-                <tr><th>Intern</th><th>ID</th><th>College</th><th>Domain</th><th>Status</th><th>Actions</th></tr>
-              </thead>
-              <tbody>
-                {interns.map(intern => (
-                  <tr key={intern.id}>
-                    <td>
-                      <div className="name-cell">
-                        <Avatar intern={intern} />
-                        <div><div className="name">{intern.name}</div><div className="sub">{intern.email}</div></div>
-                      </div>
-                    </td>
-                    <td><IDBadge code={intern.intern_id} label="INT" size="sm" /></td>
-                    <td style={{ fontSize: 13 }}>{intern.college_name || '—'}</td>
-                    <td style={{ fontSize: 13 }}>{intern.domain || '—'}</td>
-                    <td><span className={`badge ${statusBadge[intern.status] || 'badge-gray'}`}>{intern.status}</span></td>
-                    <td>
-                      <div className="action-btns">
-                        <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(intern.id) }}><Mail size={13} /></button>
-                        <button className="action-btn" onClick={() => openEdit(intern)}><Edit2 size={13} /> Edit</button>
-                        <button className="action-btn" onClick={() => { if (window.confirm('Remove intern?')) deleteMutation.mutate(intern.id) }}><Trash2 size={13} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {interns.length === 0 && <div className="empty-state"><GraduationCap size={44} /><p>No interns yet.</p></div>}
-          </div>
+          <ResponsiveTable
+            headers={['Intern', 'ID', 'College', 'Domain', 'Status', 'Actions']}
+            data={interns}
+            renderRow={(intern) => (
+              <tr key={intern.id}>
+                <td>
+                  <div className="name-cell">
+                    <Avatar intern={intern} />
+                    <div><div className="name">{intern.name}</div><div className="sub">{intern.email}</div></div>
+                  </div>
+                </td>
+                <td><IDBadge code={intern.intern_id} label="INT" size="sm" /></td>
+                <td style={{ fontSize: 13 }}>{intern.college_name || '—'}</td>
+                <td style={{ fontSize: 13 }}>{intern.domain || '—'}</td>
+                <td><span className={`badge ${statusBadge[intern.status] || 'badge-gray'}`}>{intern.status}</span></td>
+                <td>
+                  <div className="action-btns">
+                    <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(intern.id) }}><Mail size={13} /></button>
+                    <button className="action-btn" onClick={() => openEdit(intern)}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove intern?')) deleteMutation.mutate(intern.id) }}><Trash2 size={13} /></button>
+                  </div>
+                </td>
+              </tr>
+            )}
+            renderCard={(intern) => (
+              <MobileCard
+                key={intern.id}
+                avatar={<Avatar intern={intern} />}
+                title={intern.name}
+                subtitle={intern.email}
+                badges={
+                  <>
+                    <IDBadge code={intern.intern_id} label="INT" size="sm" />
+                    <span className={`badge ${statusBadge[intern.status] || 'badge-gray'}`}>{intern.status}</span>
+                  </>
+                }
+                actions={
+                  <>
+                    <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(intern.id) }}><Mail size={13} /> Resend Email</button>
+                    <button className="action-btn" onClick={() => openEdit(intern)}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove intern?')) deleteMutation.mutate(intern.id) }}><Trash2 size={13} /> Delete</button>
+                  </>
+                }
+              />
+            )}
+          />
         )}
       </div>
 

@@ -4,6 +4,8 @@ import { Plus, Search, CheckCircle, Edit2, Trash2, ClipboardList, AlertCircle, C
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 import { useAuth } from '../context/AuthContext'
 import { useNotif } from '../context/NotificationContext'
 
@@ -124,76 +126,108 @@ export default function Tasks() {
 
       <div className="card" style={{ padding: 0 }}>
         {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-          <div className="table-wrap" style={{ margin: 0 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Task</th>
-                  {isHR && <th>Assigned to</th>}
-                  <th>Priority</th>
-                  <th>Deadline</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map(t => (
-                  <tr key={t.id} style={{ opacity: t.status === 'completed' ? 0.65 : 1 }}>
-                    <td>
-                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {t.title}
-                        {isOverdue(t) && <AlertCircle size={13} style={{ color: 'var(--red)' }} title="Overdue" />}
-                      </div>
-                      {t.description && <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2 }}>{t.description.slice(0, 70)}{t.description.length > 70 ? '…' : ''}</div>}
-                    </td>
-                    {isHR && <td style={{ fontSize: 13 }}>{t.assigned_to_name}</td>}
-                    <td><span className={`badge ${PRIORITY_BADGE[t.priority]}`}>{t.priority}</span></td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-                        <Clock size={12} style={{ color: isOverdue(t) ? 'var(--red)' : 'var(--slate)' }} />
-                        <span style={{ color: isOverdue(t) ? 'var(--red)' : 'inherit' }}>{t.deadline}</span>
-                      </div>
-                    </td>
-                    <td><span className={`badge ${STATUS_BADGE[t.status]}`}>{t.status.replace('_', ' ')}</span></td>
-                    <td>
-                      <div className="action-btns">
-                        {isHR && (
-                          <>
-                            <button className="action-btn" onClick={() => { setForm({ ...t, assignee: t.assigned_to ? `employee:${t.assigned_to}` : (t.assigned_to_intern ? `intern:${t.assigned_to_intern}` : '') }); setEditId(t.id); setModal(true) }}>
-                              <Edit2 size={13} /> Edit
-                            </button>
-                            <button className="action-btn" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(t.id) }}>
-                              <Trash2 size={13} />
-                            </button>
-                          </>
-                        )}
-                        {t.status !== 'completed' && (
-                          <button
-                            className="btn btn-success"
-                            style={{ padding: '4px 10px', fontSize: 12 }}
-                            onClick={() => setConfirmDone(t)}
-                          >
-                            <CheckCircle size={13} /> Done
-                          </button>
-                        )}
-                        {t.status === 'completed' && (
-                          <span style={{ fontSize: 12, color: '#1F7A45', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <CheckCircle size={13} /> Completed
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {tasks.length === 0 && (
-              <div className="empty-state">
-                <ClipboardList size={44} />
-                <p>No tasks found.</p>
-              </div>
+          <ResponsiveTable
+            headers={isHR ? ['Task', 'Assigned to', 'Priority', 'Deadline', 'Status', 'Actions'] : ['Task', 'Priority', 'Deadline', 'Status', 'Actions']}
+            data={tasks}
+            renderRow={(t) => (
+              <tr key={t.id} style={{ opacity: t.status === 'completed' ? 0.65 : 1 }}>
+                <td>
+                  <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {t.title}
+                    {isOverdue(t) && <AlertCircle size={13} style={{ color: 'var(--red)' }} title="Overdue" />}
+                  </div>
+                  {t.description && <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2 }}>{t.description.slice(0, 70)}{t.description.length > 70 ? '…' : ''}</div>}
+                </td>
+                {isHR && <td style={{ fontSize: 13 }}>{t.assigned_to_name}</td>}
+                <td><span className={`badge ${PRIORITY_BADGE[t.priority]}`}>{t.priority}</span></td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+                    <Clock size={12} style={{ color: isOverdue(t) ? 'var(--red)' : 'var(--slate)' }} />
+                    <span style={{ color: isOverdue(t) ? 'var(--red)' : 'inherit' }}>{t.deadline}</span>
+                  </div>
+                </td>
+                <td><span className={`badge ${STATUS_BADGE[t.status]}`}>{t.status.replace('_', ' ')}</span></td>
+                <td>
+                  <div className="action-btns">
+                    {isHR && (
+                      <>
+                        <button className="action-btn" onClick={() => { setForm({ ...t, assignee: t.assigned_to ? `employee:${t.assigned_to}` : (t.assigned_to_intern ? `intern:${t.assigned_to_intern}` : '') }); setEditId(t.id); setModal(true) }}>
+                          <Edit2 size={13} /> Edit
+                        </button>
+                        <button className="action-btn" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(t.id) }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </>
+                    )}
+                    {t.status !== 'completed' && (
+                      <button
+                        className="btn btn-success"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        onClick={() => setConfirmDone(t)}
+                      >
+                        <CheckCircle size={13} /> Done
+                      </button>
+                    )}
+                    {t.status === 'completed' && (
+                      <span style={{ fontSize: 12, color: '#1F7A45', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <CheckCircle size={13} /> Completed
+                      </span>
+                    )}
+                  </div>
+                </td>
+              </tr>
             )}
-          </div>
+            renderCard={(t) => (
+              <MobileCard
+                key={t.id}
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {t.title}
+                    {isOverdue(t) && <AlertCircle size={13} style={{ color: 'var(--red)' }} title="Overdue" />}
+                  </div>
+                }
+                subtitle={t.description ? `${t.description.slice(0, 70)}${t.description.length > 70 ? '…' : ''}` : null}
+                badges={
+                  <>
+                    <span className={`badge ${PRIORITY_BADGE[t.priority]}`}>{t.priority}</span>
+                    <span className={`badge ${STATUS_BADGE[t.status]}`}>{t.status.replace('_', ' ')}</span>
+                    <span className="badge badge-gray" style={{ display: 'flex', alignItems: 'center', gap: 4, color: isOverdue(t) ? 'var(--red)' : 'inherit' }}>
+                      <Clock size={12} /> {t.deadline}
+                    </span>
+                    {isHR && t.assigned_to_name && <span className="badge badge-gray">{t.assigned_to_name}</span>}
+                  </>
+                }
+                actions={
+                  <>
+                    {isHR && (
+                      <>
+                        <button className="action-btn" onClick={() => { setForm({ ...t, assignee: t.assigned_to ? `employee:${t.assigned_to}` : (t.assigned_to_intern ? `intern:${t.assigned_to_intern}` : '') }); setEditId(t.id); setModal(true) }}>
+                          <Edit2 size={13} /> Edit
+                        </button>
+                        <button className="action-btn" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(t.id) }}>
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </>
+                    )}
+                    {t.status !== 'completed' && (
+                      <button
+                        className="btn btn-success"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        onClick={() => setConfirmDone(t)}
+                      >
+                        <CheckCircle size={13} /> Done
+                      </button>
+                    )}
+                    {t.status === 'completed' && (
+                      <span style={{ fontSize: 12, color: '#1F7A45', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <CheckCircle size={13} /> Completed
+                      </span>
+                    )}
+                  </>
+                }
+              />
+            )}
+          />
         )}
       </div>
 

@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 
 const LEAVE_TYPES = [
   { value: 'sick', label: 'Sick Leave' },
@@ -50,27 +52,27 @@ function LeaveForm({ isHR, onClose, onSuccess }) {
 
   return (
     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div>
+      <div className="form-group">
         <label className="form-label">Leave Type *</label>
         <select className="form-control" value={form.leave_type} onChange={e => set('leave_type', e.target.value)} required>
           {LEAVE_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.label}</option>)}
         </select>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
+      <div className="form-row">
+        <div className="form-group">
           <label className="form-label">From Date *</label>
           <input type="date" className="form-control" value={form.from_date} onChange={e => set('from_date', e.target.value)} required />
         </div>
-        <div>
+        <div className="form-group">
           <label className="form-label">To Date *</label>
           <input type="date" className="form-control" value={form.to_date} onChange={e => set('to_date', e.target.value)} required />
         </div>
       </div>
-      <div>
+      <div className="form-group">
         <label className="form-label">Reason *</label>
         <input type="text" className="form-control" placeholder="Brief reason for leave" value={form.reason} onChange={e => set('reason', e.target.value)} required />
       </div>
-      <div>
+      <div className="form-group">
         <label className="form-label">Description <span style={{ color: 'var(--slate)', fontSize: 11 }}>(optional)</span></label>
         <textarea className="form-control" rows={3} placeholder="Any additional details…" value={form.description} onChange={e => set('description', e.target.value)} style={{ resize: 'vertical' }} />
       </div>
@@ -283,8 +285,8 @@ export default function Attendance() {
               
               <div className="card">
                 <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 20px 0', color: 'var(--ink)' }}>Today's Summary</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                  <div style={{ background: 'var(--paper)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }}>
+                <div className="form-row">
+                  <div style={{ background: 'var(--paper)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--slate)', fontSize: 13, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       <Clock size={16} /> Check In
                     </div>
@@ -292,7 +294,7 @@ export default function Attendance() {
                       {myAtt?.check_in ? new Date(myAtt.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                     </div>
                   </div>
-                  <div style={{ background: 'var(--paper)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }}>
+                  <div style={{ background: 'var(--paper)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--slate)', fontSize: 13, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       <CheckCircle size={16} /> Check Out
                     </div>
@@ -363,7 +365,7 @@ export default function Attendance() {
 
       {tab === 'attendance' && (
         <>
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 20 }}>
+          <div className="stats-grid" style={{ marginBottom: 20 }}>
             <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><Users style={{ color: '#047857' }} size={19} /></div><div className="stat-label">Employees present</div><div className="stat-value">{presentEmployees}</div></div>
             <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--red-50)' }}><Users style={{ color: 'var(--red)' }} size={19} /></div><div className="stat-label">Employees absent</div><div className="stat-value">{absentEmployees}</div></div>
             <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><GraduationCap style={{ color: '#047857' }} size={19} /></div><div className="stat-label">Interns present</div><div className="stat-value">{presentInterns}</div></div>
@@ -378,34 +380,67 @@ export default function Attendance() {
               </div>
             </div>
             {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-              <div className="table-wrap" style={{ margin: 0 }}>
-                <table>
-                  <thead><tr><th>Name</th><th>Type</th><th>Login Time</th><th>Logout Time</th><th>Hours</th><th>Status</th></tr></thead>
-                  <tbody>
-                    {filteredRoster.map(person => {
-                      const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
-                      return (
-                        <tr key={`${person.type}-${person.id}`}>
-                          <td>
-                            <div className="name-cell">
-                              {person.picture
-                                ? <img src={person.picture} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-                                : <div className="avatar avatar-a">{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
-                              }
-                              <div><div className="name">{person.name}</div><div className="sub">{person.code}</div></div>
-                            </div>
-                          </td>
-                          <td><span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span></td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</td>
-                          <td><span className={`badge ${att ? 'badge-green' : 'badge-red'}`}>{att ? att.status : 'Absent'}</span></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <ResponsiveTable
+                headers={['Name', 'Type', 'Login Time', 'Logout Time', 'Hours', 'Status']}
+                data={filteredRoster}
+                renderRow={(person) => {
+                  const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
+                  return (
+                    <tr key={`${person.type}-${person.id}`}>
+                      <td>
+                        <div className="name-cell">
+                          {person.picture
+                            ? <img src={person.picture} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                            : <div className="avatar avatar-a">{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                          }
+                          <div><div className="name">{person.name}</div><div className="sub">{person.code}</div></div>
+                        </div>
+                      </td>
+                      <td><span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span></td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</td>
+                      <td><span className={`badge ${att ? 'badge-green' : 'badge-red'}`}>{att ? att.status : 'Absent'}</span></td>
+                    </tr>
+                  )
+                }}
+                renderCard={(person) => {
+                  const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
+                  return (
+                    <MobileCard
+                      key={`${person.type}-${person.id}`}
+                      title={person.name}
+                      subtitle={person.code}
+                      avatar={
+                        person.picture
+                          ? <img src={person.picture} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                          : <div className="avatar avatar-a" style={{ width: 32, height: 32, fontSize: 14 }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                      }
+                      badges={
+                        <>
+                          <span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span>
+                          <span className={`badge ${att ? 'badge-green' : 'badge-red'}`}>{att ? att.status : 'Absent'}</span>
+                        </>
+                      }
+                    >
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, padding: 12, background: 'var(--surface)', borderRadius: 8, fontSize: 13 }}>
+                        <div>
+                          <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Login</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Logout</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Total Hours</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</div>
+                        </div>
+                      </div>
+                    </MobileCard>
+                  )
+                }}
+              />
             )}
           </div>
         </>

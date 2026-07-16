@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 import { useAuth } from '../context/AuthContext'
 import { useNotif } from '../context/NotificationContext'
 
@@ -105,51 +107,62 @@ export default function Payroll() {
 
       <div className="card" style={{ padding: 0 }}>
         {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-          <div className="table-wrap" style={{ margin: 0 }}>
-            <table>
-              <thead>
-                <tr>
-                  {isHR && <th>Employee / Intern</th>}
-                  <th>Period</th>
-                  <th>Gross</th>
-                  <th>Deductions</th>
-                  <th>Net Pay</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salaries.map(s => (
-                  <tr key={s.id}>
-                    {isHR && (
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{s.employee_name}</div>
-                        <IDBadge code={s.employee_code} label="" size="sm" />
-                      </td>
+          <ResponsiveTable
+            headers={isHR ? ['Employee / Intern', 'Period', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Actions'] : ['Period', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Actions']}
+            data={salaries}
+            renderRow={(s) => (
+              <tr key={s.id}>
+                {isHR && (
+                  <td>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{s.employee_name}</div>
+                    <IDBadge code={s.employee_code} label="" size="sm" />
+                  </td>
+                )}
+                <td><span className="badge badge-indigo">{MONTHS[s.month]} {s.year}</span></td>
+                <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>₹{Number(s.gross || 0).toLocaleString('en-IN')}</td>
+                <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--red)' }}>₹{Number(s.total_deductions || 0).toLocaleString('en-IN')}</td>
+                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, color: '#1F7A45' }}>₹{Number(s.net_salary || 0).toLocaleString('en-IN')}</td>
+                <td><span className={`badge ${s.status === 'paid' ? 'badge-green' : 'badge-amber'}`}>{s.status}</span></td>
+                <td>
+                  <div className="action-btns">
+                    {isHR && s.status !== 'paid' && (
+                      <button className="btn btn-sm btn-success" onClick={() => paidMutation.mutate(s.id)} disabled={paidMutation.isPending}>
+                        <CheckCircle size={12} /> Mark Paid
+                      </button>
                     )}
-                    <td><span className="badge badge-indigo">{MONTHS[s.month]} {s.year}</span></td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>₹{Number(s.gross || 0).toLocaleString('en-IN')}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--red)' }}>₹{Number(s.total_deductions || 0).toLocaleString('en-IN')}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, color: '#1F7A45' }}>₹{Number(s.net_salary || 0).toLocaleString('en-IN')}</td>
-                    <td><span className={`badge ${s.status === 'paid' ? 'badge-green' : 'badge-amber'}`}>{s.status}</span></td>
-                    <td>
-                      <div className="action-btns">
-                        {isHR && s.status !== 'paid' && (
-                          <button className="btn btn-sm btn-success" onClick={() => paidMutation.mutate(s.id)} disabled={paidMutation.isPending}>
-                            <CheckCircle size={12} /> Mark Paid
-                          </button>
-                        )}
-                        <button className="btn btn-sm btn-secondary" onClick={() => downloadSlip(s)} disabled={downloading === s.id}>
-                          {downloading === s.id ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Download size={12} />} Slip
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {salaries.length === 0 && <div className="empty-state"><DollarSign size={44} /><p>No salary records yet.</p></div>}
-          </div>
+                    <button className="btn btn-sm btn-secondary" onClick={() => downloadSlip(s)} disabled={downloading === s.id}>
+                      {downloading === s.id ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Download size={12} />} Slip
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )}
+            renderCard={(s) => (
+              <MobileCard
+                key={s.id}
+                title={isHR ? s.employee_name : `${MONTHS[s.month]} ${s.year}`}
+                subtitle={isHR ? <IDBadge code={s.employee_code} label="" size="sm" /> : `Net Pay: ₹${Number(s.net_salary || 0).toLocaleString('en-IN')}`}
+                badges={
+                  <>
+                    {isHR && <span className="badge badge-indigo">{MONTHS[s.month]} {s.year}</span>}
+                    <span className={`badge ${s.status === 'paid' ? 'badge-green' : 'badge-amber'}`}>{s.status}</span>
+                  </>
+                }
+                actions={
+                  <>
+                    {isHR && s.status !== 'paid' && (
+                      <button className="btn btn-sm btn-success" onClick={() => paidMutation.mutate(s.id)} disabled={paidMutation.isPending}>
+                        <CheckCircle size={12} /> Mark Paid
+                      </button>
+                    )}
+                    <button className="btn btn-sm btn-secondary" onClick={() => downloadSlip(s)} disabled={downloading === s.id}>
+                      {downloading === s.id ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Download size={12} />} Slip
+                    </button>
+                  </>
+                }
+              />
+            )}
+          />
         )}
       </div>
 

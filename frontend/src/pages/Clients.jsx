@@ -4,6 +4,8 @@ import { Plus, Search, Edit2, Trash2, Briefcase } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
+import ResponsiveTable from '../components/ResponsiveTable'
+import MobileCard from '../components/MobileCard'
 
 const emptyForm = { name: '', contact_person: '', email: '', mobile: '', address: '' }
 
@@ -63,30 +65,43 @@ export default function Clients() {
         </div>
 
         {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-          <div className="table-wrap" style={{ margin: 0 }}>
-            <table>
-              <thead>
-                <tr><th>Client</th><th>Contact</th><th>Email</th><th>Mobile</th><th>Actions</th></tr>
-              </thead>
-              <tbody>
-                {clients.map(c => (
-                  <tr key={c.id}>
-                    <td style={{ fontWeight: 600 }}>{c.name}</td>
-                    <td style={{ fontSize: 13 }}>{c.contact_person}</td>
-                    <td style={{ fontSize: 13 }}>{c.email}</td>
-                    <td style={{ fontSize: 13 }}>{c.mobile}</td>
-                    <td>
-                      <div className="action-btns">
-                        <button className="action-btn" onClick={() => { setForm(c); setEditId(c.id); setModal(true) }}><Edit2 size={13} /> Edit</button>
-                        <button className="action-btn" onClick={() => { if (window.confirm('Remove?')) deleteMutation.mutate(c.id) }}><Trash2 size={13} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {clients.length === 0 && <div className="empty-state"><Briefcase size={44} /><p>No clients yet.</p></div>}
-          </div>
+          <ResponsiveTable
+            headers={['Client', 'Contact', 'Email', 'Mobile', 'Actions']}
+            data={clients}
+            renderRow={(c) => (
+              <tr key={c.id}>
+                <td style={{ fontWeight: 600 }}>{c.name}</td>
+                <td style={{ fontSize: 13 }}>{c.contact_person}</td>
+                <td style={{ fontSize: 13 }}>{c.email}</td>
+                <td style={{ fontSize: 13 }}>{c.mobile}</td>
+                <td>
+                  <div className="action-btns">
+                    <button className="action-btn" onClick={() => { setForm(c); setEditId(c.id); setModal(true) }}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove?')) deleteMutation.mutate(c.id) }}><Trash2 size={13} /></button>
+                  </div>
+                </td>
+              </tr>
+            )}
+            renderCard={(c) => (
+              <MobileCard
+                key={c.id}
+                title={c.name}
+                subtitle={c.email}
+                badges={
+                  <>
+                    <span className="badge badge-gray">{c.contact_person}</span>
+                    <span className="badge badge-gray">{c.mobile}</span>
+                  </>
+                }
+                actions={
+                  <>
+                    <button className="action-btn" onClick={() => { setForm(c); setEditId(c.id); setModal(true) }}><Edit2 size={13} /> Edit</button>
+                    <button className="action-btn" onClick={() => { if (window.confirm('Remove?')) deleteMutation.mutate(c.id) }}><Trash2 size={13} /> Delete</button>
+                  </>
+                }
+              />
+            )}
+          />
         )}
       </div>
 
