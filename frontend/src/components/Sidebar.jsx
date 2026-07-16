@@ -36,7 +36,7 @@ const selfNav = [
   ]},
 ]
 
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar({ isOpen, onClose, isCollapsed }) {
   const { user, logout } = useAuth()
   const isHR = user?.role === 'hr'
   const initials = (user?.first_name?.[0] || user?.username?.[0] || 'U') + (user?.last_name?.[0] || '')
@@ -44,7 +44,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const code = user?.profile?.code
 
   return (
-    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+    <aside className={`sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-brand">
         <div>
           <div className="brand-mark">PL Soft Tech</div>
@@ -61,7 +61,16 @@ export default function Sidebar({ isOpen, onClose }) {
           <div key={section}>
             <div className="nav-section-label">{section}</div>
             {items.map(({ to, label, icon: Icon }) => (
-              <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <NavLink 
+                key={to} 
+                to={to} 
+                end={to === '/'} 
+                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} 
+                onClick={() => {
+                  if (isOpen) onClose()
+                }}
+                title={isCollapsed ? label : undefined}
+              >
                 <Icon />
                 <span>{label}</span>
               </NavLink>
@@ -70,7 +79,7 @@ export default function Sidebar({ isOpen, onClose }) {
         ))}
       </nav>
       <div className="sidebar-footer">
-        <div className="user-avatar">{initials.toUpperCase()}</div>
+        <div className="user-avatar" title={isCollapsed ? `${user?.first_name} ${user?.last_name}` : undefined}>{initials.toUpperCase()}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="user-name">{user?.first_name} {user?.last_name}</div>
           <div className="user-role">{code || (isHR ? 'HR Administrator' : user?.role)}</div>
