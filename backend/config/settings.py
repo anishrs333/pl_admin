@@ -1,18 +1,27 @@
 from pathlib import Path
 from datetime import timedelta
 import os
-from decouple import config, Csv
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-pl-softtech-change-in-production-2026')
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+SECRET_KEY = 'django-insecure-pl-softtech-change-in-production-2026'
+
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+
+# For Server
+# DEBUG = False
+# ALLOWED_HOSTS = [
+#     "https://admin.plsofttech.com",
+#     'https://plsofttech.com'
+# ]
 
 # ---- File Upload Settings ----
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 # 10MB
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -34,6 +43,7 @@ INSTALLED_APPS = [
     'clients',
     'reports',
     'notifications',
+    'email_form',
 ]
 
 MIDDLEWARE = [
@@ -53,44 +63,39 @@ TEMPLATES = [{
     'BACKEND':'django.template.backends.django.DjangoTemplates',
     'DIRS':[],'APP_DIRS':True,
     'OPTIONS':{'context_processors':['django.template.context_processors.debug',
-                                     'django.template.context_processors.request',
-                                    'django.contrib.auth.context_processors.auth',
-                                    'django.contrib.messages.context_processors.messages']}}]
+                                        'django.template.context_processors.request',
+                                        'django.contrib.auth.context_processors.auth',
+                                        'django.contrib.messages.context_processors.messages']}}]
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DB_ENGINE = config('DB_ENGINE', default='django.db.backends.sqlite3')
-if DB_ENGINE == 'django.db.backends.postgresql':
-    DATABASES = {
-        'default': {
-            'ENGINE': DB_ENGINE,
-            'NAME': config('DB_NAME', default='pl'),
-            'USER': config('DB_USER', default='postgres'),
-            'PASSWORD': config('DB_PASSWORD', default='pl@206'),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
-        }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-            'OPTIONS': {
-                'timeout': 20, # Helps with 'database is locked' concurrent write issues
-            }
-        }
-    }
+}
+
 
 AUTH_USER_MODEL = 'accounts.User'
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
+
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# For Server
+# STATIC_URL = '/backend/staticfiles/'
+# STATIC_ROOT = BASE_DIR / 'staticfiles'
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = BASE_DIR / 'media'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
@@ -107,7 +112,14 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
 }
 
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173', cast=Csv())
+CORS_ALLOW_ALL_ORIGINS = True
+
+# For Server
+# CORS_ALLOWED_ORIGINS = [
+#     "https://admin.plsofttech.com",
+#     'https://plsofttech.com'
+# ]
+
 CORS_ALLOW_CREDENTIALS = True
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME':'django.contrib.auth.password_validation.MinimumLengthValidator','OPTIONS':{'min_length':4}},
@@ -116,12 +128,34 @@ AUTH_PASSWORD_VALIDATORS = [
 # ---- Email (welcome emails on employee/intern creation) ----
 # Default: prints emails to the console so it works out-of-the-box with zero setup.
 # Switch EMAIL_BACKEND to smtp and fill the vars below to send real emails (e.g. Gmail SMTP).
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='PL Soft Tech HR <hr@plsofttech.com>')
-COMPANY_NAME = config('COMPANY_NAME', default='PL Soft Tech Solutions')
-FRONTEND_LOGIN_URL = config('FRONTEND_LOGIN_URL', default='http://localhost:5173/login')
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'PL Soft Tech HR <hr@plsofttech.com>')
+COMPANY_NAME = 'PL Soft Tech Solutions'
+
+FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
+
+# For Server
+# FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://admin.plsofttech.com/login')
+
+
+JAZZMIN_SETTINGS = {
+    "site_title": "PL Soft Tech Admin",
+    "site_header": "PL Soft Tech",
+    "site_brand": "PL Soft Tech",
+    # "site_logo": "images/pl-logo.jpeg",
+    # "login_logo": "images/pl-logo.jpeg",
+    # "login_logo_dark": "images/pl-logo.jpeg",
+    # "site_icon": "images/favicon.ico",
+    "welcome_sign": "Welcome to PL Soft Tech Admin Panel",
+    "copyright": "PL Soft Tech Solutions",
+    "topmenu_links": [
+        {"name": "Website", "url": "https://plsofttech.com", "new_window": True},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+}
