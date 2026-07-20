@@ -110,3 +110,35 @@ def notify_salary_paid(salary):
             object_type='salary',
             object_id=salary.id,
         )
+
+
+def notify_break_applied(break_req):
+    """Notify HR when an employee/intern submits a break request."""
+    from accounts.models import User
+    hr_users = User.objects.filter(role='hr', is_active=True)
+    for hr in hr_users:
+        notify(
+            recipient=hr,
+            notification_type='break_applied',
+            title='New break request',
+            message=f'{break_req.person_name} requested a {break_req.get_break_type_display()} on {break_req.date}.',
+            object_type='break',
+            object_id=break_req.id,
+        )
+
+
+def notify_break_decision(break_req):
+    """Notify employee/intern when HR approves/rejects their break request."""
+    person = break_req.employee or break_req.intern
+    user = getattr(person, 'user', None)
+    if user:
+        decision = 'approved' if break_req.status == 'approved' else 'rejected'
+        ntype = 'break_approved' if break_req.status == 'approved' else 'break_rejected'
+        notify(
+            recipient=user,
+            notification_type=ntype,
+            title=f'Break request {decision}',
+            message=f'Your {break_req.get_break_type_display()} on {break_req.date} has been {decision}.',
+            object_type='break',
+            object_id=break_req.id,
+        )
