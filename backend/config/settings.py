@@ -12,8 +12,9 @@ ALLOWED_HOSTS = ['*']
 # For Server
 # DEBUG = False
 # ALLOWED_HOSTS = [
-#     "https://admin.plsofttech.com",
-#     'https://plsofttech.com'
+#     "admin.plsofttech.com",
+#     "adminapi.plsofttech.com",
+#     'plsofttech.com'
 # ]
 
 # ---- File Upload Settings ----
@@ -90,11 +91,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# For Server
-# STATIC_URL = '/backend/staticfiles/'
-# STATIC_ROOT = BASE_DIR / 'staticfiles'
-# MEDIA_URL = '/media/'
-# MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -117,8 +113,16 @@ CORS_ALLOW_ALL_ORIGINS = True
 # For Server
 # CORS_ALLOWED_ORIGINS = [
 #     "https://admin.plsofttech.com",
-#     'https://plsofttech.com'
+#     "https://adminapi.plsofttech.com",
+#     'https://plsofttech.com',
 # ]
+
+# CSRF_TRUSTED_ORIGINS = [
+#     "https://adminapi.plsofttech.com",
+#     "https://admin.plsofttech.com",
+#     'https://plsofttech.com',
+# ]
+
 
 CORS_ALLOW_CREDENTIALS = True
 AUTH_PASSWORD_VALIDATORS = [
@@ -137,10 +141,10 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'PL Soft Tech HR <hr@plsofttech.com>')
 COMPANY_NAME = 'PL Soft Tech Solutions'
 
-FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
+# FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
 
 # For Server
-# FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://admin.plsofttech.com/login')
+FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://admin.plsofttech.com/login')
 
 
 JAZZMIN_SETTINGS = {
