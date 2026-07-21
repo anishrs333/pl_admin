@@ -154,3 +154,53 @@ class WorkFromHome(models.Model):
 
     def __str__(self):
         return f'{self.person_name} — WFH ({self.date})'
+
+
+class BreakRequest(models.Model):
+    BREAK_TYPE_CHOICES = [
+        ('personal_break', 'Personal Break'),
+        ('half_day', 'Half Day'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='break_requests', null=True, blank=True)
+    intern = models.ForeignKey('internships.Intern', on_delete=models.CASCADE, related_name='break_requests', null=True, blank=True)
+
+    break_type = models.CharField(max_length=20, choices=BREAK_TYPE_CHOICES)
+    date = models.DateField()
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    reviewer = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_breaks')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewer_notes = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @property
+    def person(self):
+        return self.employee or self.intern
+
+    @property
+    def person_name(self):
+        return self.employee.full_name if self.employee else (self.intern.name if self.intern else '—')
+
+    @property
+    def person_code(self):
+        return self.employee.employee_id if self.employee else (self.intern.intern_id if self.intern else '—')
+
+    @property
+    def person_type(self):
+        return 'employee' if self.employee_id else 'intern'
+
+    def __str__(self):
+        return f'{self.person_name} — {self.get_break_type_display()} ({self.date})'
