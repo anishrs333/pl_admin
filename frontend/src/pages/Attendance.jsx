@@ -94,6 +94,8 @@ function BreakForm({ onClose, onSuccess }) {
   const [form, setForm] = useState({
     break_type: 'personal_break',
     date: new Date().toISOString().split('T')[0],
+    start_time: '',
+    end_time: '',
     reason: '',
   })
   const [saving, setSaving] = useState(false)
@@ -126,6 +128,16 @@ function BreakForm({ onClose, onSuccess }) {
       <div className="form-group">
         <label className="form-label">Date *</label>
         <input type="date" className="form-control" value={form.date} onChange={e => set('date', e.target.value)} required />
+      </div>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label className="form-label">From Time *</label>
+          <input type="time" className="form-control" value={form.start_time} onChange={e => set('start_time', e.target.value)} required />
+        </div>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label className="form-label">To Time *</label>
+          <input type="time" className="form-control" value={form.end_time} onChange={e => set('end_time', e.target.value)} required />
+        </div>
       </div>
       <div className="form-group">
         <label className="form-label">Reason *</label>
@@ -191,6 +203,9 @@ function BreakCard({ breakReq, isHR, onApprove, onReject }) {
         </div>
         <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 3 }}>
           {breakReq.date}
+          {breakReq.start_time && breakReq.end_time && (
+            <span style={{ marginLeft: 8 }}>{breakReq.start_time?.slice(0,5)} – {breakReq.end_time?.slice(0,5)}</span>
+          )}
         </div>
         <div style={{ fontSize: 13, marginTop: 6 }}>{breakReq.reason}</div>
         {breakReq.reviewer_notes && (

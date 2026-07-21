@@ -15,7 +15,7 @@ class BreakRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'employee', 'intern', 'person_name', 'person_code', 'person_type',
             'break_type', 'break_type_display',
-            'date', 'reason',
+            'date', 'start_time', 'end_time', 'reason',
             'status', 'status_display',
             'reviewer', 'reviewer_name', 'reviewed_at', 'reviewer_notes',
             'created_at',

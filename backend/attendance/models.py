@@ -174,6 +174,8 @@ class BreakRequest(models.Model):
 
     break_type = models.CharField(max_length=20, choices=BREAK_TYPE_CHOICES)
     date = models.DateField()
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
     reason = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
