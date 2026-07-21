@@ -172,7 +172,7 @@ export default function Internships() {
         <div style={{ padding: '18px 22px 0' }}>
           <div className="search-wrap" style={{ marginBottom: 18 }}>
             <Search className="search-icon" size={16} />
-            <input className="form-control" style={{ paddingLeft: 36, maxWidth: 320 }} placeholder="Search by name, domain…" value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="form-control" style={{ paddingLeft: 36, width: '100%', maxWidth: 320 }} placeholder="Search by name, domain…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
 

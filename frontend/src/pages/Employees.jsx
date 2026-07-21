@@ -173,7 +173,7 @@ export default function Employees() {
             <Search className="search-icon" size={16} />
             <input
               className="form-control"
-              style={{ paddingLeft: 36, maxWidth: 320 }}
+              style={{ paddingLeft: 36, width: '100%', maxWidth: 320 }}
               placeholder="Search by name, email, ID…"
               value={search}
               onChange={e => setSearch(e.target.value)}

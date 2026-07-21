@@ -98,7 +98,7 @@ export default function Payroll() {
 
       {isHR && (
         <div style={{ marginBottom: 16 }}>
-          <div className="search-wrap" style={{ maxWidth: 320 }}>
+          <div className="search-wrap" style={{ width: '100%', maxWidth: 320 }}>
             <Search className="search-icon" size={16} />
             <input className="form-control" style={{ paddingLeft: 36 }} placeholder="Search by employee…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>

@@ -340,20 +340,20 @@ export default function Attendance() {
         </div>
 
         {/* Tab switcher */}
-        <div className="tabs">
+        <div className="segmented-tabs">
           {[
             { key: 'attendance', label: 'Today' },
             { key: 'leaves', label: 'My Leaves' },
             { key: 'breaks', label: 'Breaks' },
           ].map(t => (
-            <button key={t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
+            <button key={t.key} className={`segmented-tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
               {t.label}
             </button>
           ))}
         </div>
 
         {tab === 'attendance' && (
-          <div className="attendance-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
+          <div className="attendance-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 24, alignItems: 'start' }}>
             
             {/* Main Action Card */}
             <div className="card" style={{ padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -471,7 +471,7 @@ export default function Attendance() {
 
         {tab === 'leaves' && (
           <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="card-title">Leave Requests</span>
               <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={leaveFilter} onChange={e => setLeaveFilter(e.target.value)}>
                 <option value="all">All</option>
@@ -528,7 +528,7 @@ export default function Attendance() {
 
             {/* My Break Requests */}
             <div className="card" style={{ padding: 0 }}>
-              <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="card-title">My Break Requests</span>
                 <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={breakFilter} onChange={e => setBreakFilter(e.target.value)}>
                   <option value="all">All</option>
@@ -568,13 +568,13 @@ export default function Attendance() {
       </div>
 
       {/* Tab switcher */}
-      <div className="tabs">
+      <div className="segmented-tabs">
         {[
           { key: 'attendance', label: "Today's Attendance" },
           { key: 'leaves', label: 'Leave Requests' },
           { key: 'breaks', label: 'Break Requests' },
         ].map(t => (
-          <button key={t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
+          <button key={t.key} className={`segmented-tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
             {t.label}
           </button>
         ))}
@@ -582,23 +582,33 @@ export default function Attendance() {
 
       {tab === 'attendance' && (
         <>
-          <div className="stats-grid" style={{ marginBottom: 20 }}>
-            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><Users style={{ color: '#047857' }} size={19} /></div><div className="stat-label">Employees present</div><div className="stat-value">{presentEmployees}</div></div>
-            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--red-50)' }}><Users style={{ color: 'var(--red)' }} size={19} /></div><div className="stat-label">Employees absent</div><div className="stat-value">{absentEmployees}</div></div>
-            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--green-50)' }}><GraduationCap style={{ color: '#047857' }} size={19} /></div><div className="stat-label">Interns present</div><div className="stat-value">{presentInterns}</div></div>
-            <div className="stat-card"><div className="stat-icon-wrap" style={{ background: 'var(--red-50)' }}><GraduationCap style={{ color: 'var(--red)' }} size={19} /></div><div className="stat-label">Interns absent</div><div className="stat-value">{absentInterns}</div></div>
+          <div className="stats-grid" style={{ marginBottom: 24 }}>
+            <div className="stat-card"><div className="stat-icon-wrap"><Users style={{ color: '#047857' }} size={22} /></div><div className="stat-label">Employees present</div><div className="stat-value">{presentEmployees}</div></div>
+            <div className="stat-card"><div className="stat-icon-wrap"><Users style={{ color: 'var(--red)' }} size={22} /></div><div className="stat-label">Employees absent</div><div className="stat-value">{absentEmployees}</div></div>
+            <div className="stat-card"><div className="stat-icon-wrap"><GraduationCap style={{ color: '#047857' }} size={22} /></div><div className="stat-label">Interns present</div><div className="stat-value">{presentInterns}</div></div>
+            <div className="stat-card"><div className="stat-icon-wrap"><GraduationCap style={{ color: 'var(--red)' }} size={22} /></div><div className="stat-label">Interns absent</div><div className="stat-value">{absentInterns}</div></div>
           </div>
 
           <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '18px 22px 0' }}>
-              <div className="search-wrap" style={{ marginBottom: 18 }}>
-                <Search className="search-icon" size={16} />
-                <input className="form-control" style={{ paddingLeft: 36, maxWidth: 300 }} placeholder="Search employee or intern…" value={search} onChange={e => setSearch(e.target.value)} />
+            <div style={{ padding: '24px 24px 20px', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="toolbar" style={{ flex: '1 1 280px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div className="search-wrap" style={{ flex: '1 1 200px' }}>
+                  <Search className="search-icon" size={16} />
+                  <input className="form-control" style={{ paddingLeft: 36, width: '100%' }} placeholder="Search employee or intern…" value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+                <select className="form-control" style={{ flex: '0 0 auto', width: 'auto', minWidth: 120 }}>
+                  <option>Today</option>
+                  <option>Yesterday</option>
+                  <option>This Week</option>
+                </select>
               </div>
+              <button className="btn btn-secondary" style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}>
+                <FileText size={15} /> Export CSV
+              </button>
             </div>
             {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
               <ResponsiveTable
-                headers={['Name', 'Type', 'Login Time', 'Logout Time', 'Hours', 'Status']}
+                headers={['Name', 'Type', 'Login Time', 'Logout Time', 'Hours', 'Status', '']}
                 data={filteredRoster}
                 renderRow={(person) => {
                   const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
@@ -607,8 +617,8 @@ export default function Attendance() {
                       <td>
                         <div className="name-cell">
                           {person.picture
-                            ? <img src={person.picture} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-                            : <div className="avatar avatar-a">{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                            ? <img src={person.picture} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }} />
+                            : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--primary-50)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13, border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
                           }
                           <div><div className="name">{person.name}</div><div className="sub">{person.code}</div></div>
                         </div>
@@ -617,7 +627,10 @@ export default function Attendance() {
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</td>
-                      <td><span className={`badge ${att ? 'badge-green' : 'badge-red'}`}>{att ? att.status : 'Absent'}</span></td>
+                      <td><span className={`badge ${att ? 'badge-green' : 'badge-gray'}`}>{att ? att.status : 'Absent'}</span></td>
+                      <td>
+                        <button className="action-btn" title="View details"><Search size={14} /></button>
+                      </td>
                     </tr>
                   )
                 }}
@@ -665,7 +678,7 @@ export default function Attendance() {
 
       {tab === 'leaves' && (
         <div className="card" style={{ padding: 0 }}>
-          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="card-title">Leave Requests</span>
             <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={leaveFilter} onChange={e => setLeaveFilter(e.target.value)}>
               <option value="all">All Status</option>
@@ -688,7 +701,7 @@ export default function Attendance() {
 
       {tab === 'breaks' && (
         <div className="card" style={{ padding: 0 }}>
-          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="card-title">Break Requests</span>
             <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={breakFilter} onChange={e => setBreakFilter(e.target.value)}>
               <option value="all">All Status</option>

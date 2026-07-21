@@ -37,7 +37,7 @@ export default function Security() {
         </div>
       )}
 
-      <div className="card" style={{maxWidth:460}}>
+      <div className="card" style={{ width: '100%', maxWidth: 460 }}>
         <div className="card-header"><span className="card-title">Change password</span></div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
