@@ -458,7 +458,7 @@ export default function Attendance() {
                     </div>
                     <div className="break-schedule-info">
                       <span className="break-schedule-name">Lunch Break</span>
-                      <span className="break-schedule-time">1:00 PM – 2:00 PM</span>
+                      <span className="break-schedule-time">1:15 PM – 2:00 PM</span>
                     </div>
                     <span className="badge badge-amber" style={{ fontSize: 10 }}>1 hour</span>
                   </div>
@@ -524,7 +524,7 @@ export default function Attendance() {
                   </div>
                   <div className="break-schedule-info">
                     <span className="break-schedule-name">Lunch Break</span>
-                    <span className="break-schedule-time">1:00 PM – 2:00 PM</span>
+                    <span className="break-schedule-time">1:15 PM – 2:00 PM</span>
                   </div>
                   <span className="badge badge-amber" style={{ fontSize: 10 }}>1 hour</span>
                 </div>
