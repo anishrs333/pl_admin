@@ -10,7 +10,7 @@ import ResponsiveTable from '../components/ResponsiveTable'
 import MobileCard from '../components/MobileCard'
 
 const LEAVE_TYPES = [
-  { value: 'sick', label: 'Sick Leave' },
+  { value: 'sick', label: 'Sick Leave',label1:'paid leave' },
   { value: 'paid', label: 'Paid Leave' },
   { value: 'unpaid', label: 'Unpaid Leave' },
   { value: 'casual', label: 'Casual Leave' },
