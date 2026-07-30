@@ -64,10 +64,10 @@ export default function Candidates() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: '18px 22px 0' }}>
+        <div className="card-header-mobile">
           <div className="search-wrap" style={{ marginBottom: 18 }}>
             <Search className="search-icon" size={16} />
-            <input className="form-control" style={{ paddingLeft: 36, width: '100%', maxWidth: 320 }} placeholder="Search candidates…" value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="form-control" style={{ paddingLeft: 36, width: '100%' }} placeholder="Search candidates…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
 

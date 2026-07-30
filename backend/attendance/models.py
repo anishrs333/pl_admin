@@ -21,6 +21,8 @@ class Attendance(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present')
     is_late = models.BooleanField(default=False)
     notes = models.TextField(blank=True)
+    is_manually_edited = models.BooleanField(default=False)
+    modified_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='modified_attendance')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

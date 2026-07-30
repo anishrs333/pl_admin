@@ -1,6 +1,8 @@
 import { useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Bell, CheckCheck, Clock, FileText, CalendarDays, DollarSign, CheckCircle } from 'lucide-react'
 import { useNotif } from '../context/NotificationContext'
+import { useAuth } from '../context/AuthContext'
 
 const TYPE_ICONS = {
   task_assigned: <CheckCircle size={14} style={{ color: 'var(--indigo)' }} />,
@@ -11,6 +13,30 @@ const TYPE_ICONS = {
   salary_generated: <DollarSign size={14} style={{ color: 'var(--indigo)' }} />,
   salary_paid: <DollarSign size={14} style={{ color: '#1F7A45' }} />,
   general: <Bell size={14} style={{ color: 'var(--slate)' }} />,
+}
+
+const NOTIF_ROUTES = {
+  task: '/tasks',
+  leave: '/attendance',
+  break: '/attendance',
+  salary: '/payroll',
+  wfh: '/wfh',
+}
+
+const TYPE_TO_OBJECT = {
+  task_assigned: 'task',
+  task_completed: 'task',
+  leave_applied: 'leave',
+  leave_approved: 'leave',
+  leave_rejected: 'leave',
+  break_applied: 'break',
+  break_approved: 'break',
+  break_rejected: 'break',
+  salary_generated: 'salary',
+  salary_paid: 'salary',
+  wfh_applied: 'wfh',
+  wfh_approved: 'wfh',
+  wfh_rejected: 'wfh',
 }
 
 function timeAgo(dateStr) {
@@ -25,7 +51,10 @@ function timeAgo(dateStr) {
 
 export default function NotificationBell() {
   const { count, notifications, open, setOpen, markRead, markAllRead } = useNotif()
+  const { user } = useAuth()
   const panelRef = useRef(null)
+  const navigate = useNavigate()
+  const isHR = user?.role === 'hr' || user?.role === 'hr_executive'
 
   useEffect(() => {
     const handler = (e) => {
@@ -34,6 +63,17 @@ export default function NotificationBell() {
     if (open) document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open, setOpen])
+
+  const handleNotifClick = (n) => {
+    if (!n.is_read) markRead(n.id)
+    const objType = n.object_type || TYPE_TO_OBJECT[n.notification_type] || ''
+    let route = NOTIF_ROUTES[objType]
+    if (objType === 'salary') route = isHR ? '/payroll' : '/my-payslips'
+    if (route) {
+      setOpen(false)
+      navigate(route)
+    }
+  }
 
   return (
     <div style={{ position: 'relative' }} ref={panelRef}>
@@ -68,9 +108,10 @@ export default function NotificationBell() {
             ) : notifications.map(n => (
               <div
                 key={n.id}
-                onClick={() => !n.is_read && markRead(n.id)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => handleNotifClick(n)}
                 style={{
-                  padding: '12px 16px', borderBottom: '1px solid var(--border-light)', cursor: n.is_read ? 'default' : 'pointer',
+                  padding: '12px 16px', borderBottom: '1px solid var(--border-light)', cursor: (n.object_type || TYPE_TO_OBJECT[n.notification_type]) ? 'pointer' : 'default',
                   background: n.is_read ? '#fff' : 'var(--indigo-50)', display: 'flex', gap: 10, alignItems: 'flex-start',
                   transition: 'background 0.15s',
                 }}

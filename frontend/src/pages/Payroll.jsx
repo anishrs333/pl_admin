@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, DollarSign, CheckCircle, Download, Search } from 'lucide-react'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
@@ -98,7 +100,7 @@ export default function Payroll() {
 
       {isHR && (
         <div style={{ marginBottom: 16 }}>
-          <div className="search-wrap" style={{ width: '100%', maxWidth: 320 }}>
+          <div className="search-wrap" style={{ width: '100%' }}>
             <Search className="search-icon" size={16} />
             <input className="form-control" style={{ paddingLeft: 36 }} placeholder="Search by employee…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
@@ -106,7 +108,8 @@ export default function Payroll() {
       )}
 
       <div className="card" style={{ padding: 0 }}>
-        {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
+        {isLoading ? <Loading /> : (
+          salaries.length === 0 ? <EmptyState icon={DollarSign} title="No salary records" description="No payroll data to display." /> :
           <ResponsiveTable
             headers={isHR ? ['Employee / Intern', 'Period', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Actions'] : ['Period', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Actions']}
             data={salaries}

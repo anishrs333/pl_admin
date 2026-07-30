@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, CheckCircle, Edit2, Trash2, ClipboardList, AlertCircle, Clock } from 'lucide-react'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
@@ -17,7 +19,9 @@ export default function Tasks() {
   const qc = useQueryClient()
   const { user } = useAuth()
   const { fetchCount } = useNotif()
-  const isHR = user?.role === 'hr'
+  const isHR = user?.role === 'hr' || user?.role === 'hr_executive'
+  const canAssign = isHR
+  const isFullHR = user?.role === 'hr'
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [modal, setModal] = useState(false)
@@ -39,23 +43,30 @@ export default function Tasks() {
   const { data: emps } = useQuery({
     queryKey: ['employees-list'],
     queryFn: () => api.get('/employees/').then(r => r.data),
-    enabled: isHR
+    enabled: canAssign
   })
 
   const { data: interns } = useQuery({
     queryKey: ['interns-list'],
     queryFn: () => api.get('/internships/').then(r => r.data),
-    enabled: isHR
+    enabled: canAssign
+  })
+
+  const { data: usersList } = useQuery({
+    queryKey: ['users-list'],
+    queryFn: () => api.get('/auth/users/').then(r => r.data),
+    enabled: canAssign
   })
 
   const saveMutation = useMutation({
     mutationFn: (d) => {
       const { assignee, ...rest } = d
-      const payload = { ...rest, assigned_to: null, assigned_to_intern: null }
+      const payload = { ...rest, assigned_to: null, assigned_to_intern: null, assigned_to_user: null }
       if (assignee) {
         const [type, id] = assignee.split(':')
         if (type === 'employee') payload.assigned_to = id
         else if (type === 'intern') payload.assigned_to_intern = id
+        else if (type === 'user') payload.assigned_to_user = id
       }
       return editId ? api.patch(`/tasks/${editId}/`, payload) : api.post('/tasks/', payload)
     },
@@ -94,10 +105,10 @@ export default function Tasks() {
     <div>
       <div className="page-header">
         <div>
-          <h2 className="page-header-title">{isHR ? 'Tasks' : 'My Tasks'}</h2>
+          <h2 className="page-header-title">{canAssign ? 'Tasks' : 'My Tasks'}</h2>
           <p className="page-header-sub">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</p>
         </div>
-        {isHR && (
+        {canAssign && (
           <button className="btn btn-primary" onClick={() => { setForm(emptyForm); setEditId(null); setModal(true) }}>
             <Plus size={15} /> Assign task
           </button>
@@ -105,8 +116,8 @@ export default function Tasks() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div className="search-wrap" style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 340 }}>
+      <div className="tasks-filter" style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div className="search-wrap" style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search className="search-icon" size={16} />
           <input
             className="form-control"
@@ -125,9 +136,10 @@ export default function Tasks() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
+        {isLoading ? <Loading /> : (
+          tasks.length === 0 ? <EmptyState icon={ClipboardList} title="No tasks yet" description="Create your first task to get started." /> :
           <ResponsiveTable
-            headers={isHR ? ['Task', 'Assigned to', 'Priority', 'Deadline', 'Status', 'Actions'] : ['Task', 'Priority', 'Deadline', 'Status', 'Actions']}
+            headers={canAssign ? ['Task', 'Assigned to', 'Priority', 'Deadline', 'Status', 'Actions'] : ['Task', 'Priority', 'Deadline', 'Status', 'Actions']}
             data={tasks}
             renderRow={(t) => (
               <tr key={t.id} style={{ opacity: t.status === 'completed' ? 0.65 : 1 }}>
@@ -138,7 +150,7 @@ export default function Tasks() {
                   </div>
                   {t.description && <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2 }}>{t.description.slice(0, 70)}{t.description.length > 70 ? '…' : ''}</div>}
                 </td>
-                {isHR && <td style={{ fontSize: 13 }}>{t.assigned_to_name}</td>}
+                {canAssign && <td style={{ fontSize: 13 }}>{t.assigned_to_name}</td>}
                 <td><span className={`badge ${PRIORITY_BADGE[t.priority]}`}>{t.priority}</span></td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
@@ -149,9 +161,15 @@ export default function Tasks() {
                 <td><span className={`badge ${STATUS_BADGE[t.status]}`}>{t.status.replace('_', ' ')}</span></td>
                 <td>
                   <div className="action-btns">
-                    {isHR && (
+                    {canAssign && (
                       <>
-                        <button className="action-btn" onClick={() => { setForm({ ...t, assignee: t.assigned_to ? `employee:${t.assigned_to}` : (t.assigned_to_intern ? `intern:${t.assigned_to_intern}` : '') }); setEditId(t.id); setModal(true) }}>
+                        <button className="action-btn" onClick={() => {
+                          let assignee = ''
+                          if (t.assigned_to) assignee = `employee:${t.assigned_to}`
+                          else if (t.assigned_to_intern) assignee = `intern:${t.assigned_to_intern}`
+                          else if (t.assigned_to_user) assignee = `user:${t.assigned_to_user}`
+                          setForm({ ...t, assignee }); setEditId(t.id); setModal(true)
+                        }}>
                           <Edit2 size={13} /> Edit
                         </button>
                         <button className="action-btn" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(t.id) }}>
@@ -194,14 +212,20 @@ export default function Tasks() {
                     <span className="badge badge-gray" style={{ display: 'flex', alignItems: 'center', gap: 4, color: isOverdue(t) ? 'var(--red)' : 'inherit' }}>
                       <Clock size={12} /> {t.deadline}
                     </span>
-                    {isHR && t.assigned_to_name && <span className="badge badge-gray">{t.assigned_to_name}</span>}
+                    {canAssign && t.assigned_to_name && <span className="badge badge-gray">{t.assigned_to_name}</span>}
                   </>
                 }
                 actions={
                   <>
-                    {isHR && (
+                    {canAssign && (
                       <>
-                        <button className="action-btn" onClick={() => { setForm({ ...t, assignee: t.assigned_to ? `employee:${t.assigned_to}` : (t.assigned_to_intern ? `intern:${t.assigned_to_intern}` : '') }); setEditId(t.id); setModal(true) }}>
+                        <button className="action-btn" onClick={() => {
+                          let assignee = ''
+                          if (t.assigned_to) assignee = `employee:${t.assigned_to}`
+                          else if (t.assigned_to_intern) assignee = `intern:${t.assigned_to_intern}`
+                          else if (t.assigned_to_user) assignee = `user:${t.assigned_to_user}`
+                          setForm({ ...t, assignee }); setEditId(t.id); setModal(true)
+                        }}>
                           <Edit2 size={13} /> Edit
                         </button>
                         <button className="action-btn" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(t.id) }}>
@@ -243,7 +267,7 @@ export default function Tasks() {
               <strong>"{confirmDone.title}"</strong>
             </p>
             <p style={{ textAlign: 'center', color: 'var(--slate)', fontSize: 13, marginBottom: 24 }}>
-              {isHR ? 'This will notify the employee.' : 'This will notify the HR team that you completed this task.'}
+              {canAssign ? 'This will notify the employee.' : 'This will notify the HR team that you completed this task.'}
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmDone(null)}>Cancel</button>
@@ -261,7 +285,7 @@ export default function Tasks() {
       )}
 
       {/* Task Form Modal */}
-      {isHR && modal && (
+      {canAssign && modal && (
         <Modal
           title={editId ? 'Edit task' : 'Assign task'}
           onClose={() => setModal(false)}
@@ -286,7 +310,14 @@ export default function Tasks() {
             <div className="form-group">
               <label className="form-label">Assign to *</label>
               <select className="form-control" value={form.assignee} onChange={e => set('assignee', e.target.value)} required>
-                <option value="">Select employee or intern</option>
+                <option value="">Select person</option>
+                {isFullHR && usersList && usersList.length > 0 && (
+                  <optgroup label="HR Executive">
+                    {usersList.filter(u => u.role === 'hr_executive').map(u => (
+                      <option key={`user:${u.id}`} value={`user:${u.id}`}>{u.first_name} {u.last_name} (HR Executive)</option>
+                    ))}
+                  </optgroup>
+                )}
                 <optgroup label="Employees">
                   {employees.map(e => <option key={`employee:${e.id}`} value={`employee:${e.id}`}>{e.full_name}</option>)}
                 </optgroup>

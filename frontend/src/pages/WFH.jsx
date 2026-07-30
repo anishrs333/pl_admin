@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Home, MapPin, Clock, Calendar, CheckCircle, XCircle } from 'lucide-react'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
@@ -14,7 +16,7 @@ const emptyForm = { date: '', reason: '', working_address: '', expected_hours: 8
 export default function WFH() {
   const qc = useQueryClient()
   const { user } = useAuth()
-  const isHR = user?.role === 'hr'
+  const isHR = user?.role === 'hr' || user?.role === 'hr_executive'
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [remarksModal, setRemarksModal] = useState({ open: false, type: '', id: null, notes: '' })
@@ -88,7 +90,8 @@ export default function WFH() {
       )}
 
       <div className="card" style={{ padding: 0 }}>
-        {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
+        {isLoading ? <Loading /> : (
+          requests.length === 0 ? <EmptyState icon={MapPin} title="No WFH requests" description="No work from home requests to display." /> :
           <ResponsiveTable
             headers={isHR ? ['Employee', 'Date', 'Location & Tasks', 'Status', 'Actions'] : ['Date', 'Location & Tasks', 'Status']}
             data={requests}

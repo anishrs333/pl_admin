@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
+import OfflineBanner from './components/OfflineBanner'
+import NotFound from './components/NotFound'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
@@ -18,8 +20,8 @@ import WFH from './pages/WFH'
 function FullPageLoader() {
   return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:12,background:'var(--paper)'}}>
-      <div className="spinner" style={{width:30,height:30,borderWidth:3}}/>
-      <div style={{fontSize:13,color:'var(--slate)'}}>Loading…</div>
+      <div className="state-spinner state-spinner-lg"/>
+      <div style={{fontSize:13,color:'var(--gray-500)'}}>Loading…</div>
     </div>
   )
 }
@@ -31,6 +33,12 @@ function PrivateRoute({ children }) {
 }
 
 function HRRoute({ children }) {
+  const { user } = useAuth()
+  if (user?.role !== 'hr' && user?.role !== 'hr_executive') return <Navigate to="/" replace/>
+  return children
+}
+
+function FullHRRRoute({ children }) {
   const { user } = useAuth()
   if (user?.role !== 'hr') return <Navigate to="/" replace/>
   return children
@@ -51,10 +59,11 @@ function AppRoutes() {
       <Route path="/attendance" element={<PrivateRoute><Attendance/></PrivateRoute>}/>
       <Route path="/wfh" element={<PrivateRoute><WFH/></PrivateRoute>}/>
       <Route path="/tasks" element={<PrivateRoute><Tasks/></PrivateRoute>}/>
-      <Route path="/payroll" element={<PrivateRoute><Payroll/></PrivateRoute>}/>
+      <Route path="/payroll" element={<PrivateRoute><FullHRRRoute><Payroll/></FullHRRRoute></PrivateRoute>}/>
+      <Route path="/my-payslips" element={<PrivateRoute><Payroll/></PrivateRoute>}/>
       <Route path="/colleges" element={<PrivateRoute><HRRoute><Colleges/></HRRoute></PrivateRoute>}/>
-      <Route path="/clients" element={<PrivateRoute><HRRoute><Clients/></HRRoute></PrivateRoute>}/>
-      <Route path="*" element={<Navigate to="/" replace/>}/>
+      <Route path="/clients" element={<PrivateRoute><FullHRRRoute><Clients/></FullHRRRoute></PrivateRoute>}/>
+      <Route path="*" element={<NotFound/>}/>
     </Routes>
   )
 }
@@ -63,6 +72,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <OfflineBanner/>
         <AppRoutes/>
       </BrowserRouter>
     </AuthProvider>

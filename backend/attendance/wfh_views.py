@@ -2,7 +2,7 @@ from rest_framework import viewsets, filters, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from accounts.permissions import IsHR, IsHRorSelfReadOnly
+from accounts.permissions import IsFullHR, IsHRorSelfReadOnly
 from .models import WorkFromHome
 from .wfh_serializers import WorkFromHomeSerializer
 from .views import _get_self_target
@@ -19,7 +19,7 @@ class WorkFromHomeViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return [IsHRorSelfReadOnly()]
         elif self.action in ['approve', 'reject']:
-            return [IsHR()]
+            return [IsFullHR()]
         else:
             return [IsHRorSelfReadOnly()]
 

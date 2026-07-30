@@ -4,18 +4,13 @@ import os
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'django-insecure-pl-softtech-change-in-production-2026'
 
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-pl-softtech-change-in-production-2026')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-# For Server
-# DEBUG = False
-# ALLOWED_HOSTS = [
-#     "admin.plsofttech.com",
-#     "adminapi.plsofttech.com",
-#     'plsofttech.com'
-# ]
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+CORS_ALLOWED_ORIGINS_RAW = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')
+CSRF_TRUSTED_ORIGINS_RAW = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 
 # ---- File Upload Settings ----
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 # 10MB
@@ -103,31 +98,42 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=10),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1) if not DEBUG else timedelta(hours=10),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1) if not DEBUG else timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
-
-# For Server
-# CORS_ALLOWED_ORIGINS = [
-#     "https://admin.plsofttech.com",
-#     "https://adminapi.plsofttech.com",
-#     'https://plsofttech.com',
-# ]
-
-# CSRF_TRUSTED_ORIGINS = [
-#     "https://adminapi.plsofttech.com",
-#     "https://admin.plsofttech.com",
-#     'https://plsofttech.com',
-# ]
-
+# ---- CORS: never allow-all in production ----
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in CORS_ALLOWED_ORIGINS_RAW.split(',') if o.strip()]
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in CSRF_TRUSTED_ORIGINS_RAW.split(',') if o.strip()]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# ---- Password Validators ----
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME':'django.contrib.auth.password_validation.MinimumLengthValidator','OPTIONS':{'min_length':4}},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
+
+# ---- Security Headers (production) ----
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ---- Email (welcome emails on employee/intern creation) ----
 # Default: prints emails to the console so it works out-of-the-box with zero setup.
@@ -141,10 +147,8 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'PL Soft Tech HR <hr@plsofttech.com>')
 COMPANY_NAME = 'PL Soft Tech Solutions'
 
-# FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
-
-# For Server
-FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://admin.plsofttech.com/login')
+# ---- Frontend ----
+FRONTEND_LOGIN_URL = os.environ.get('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
 
 
 JAZZMIN_SETTINGS = {

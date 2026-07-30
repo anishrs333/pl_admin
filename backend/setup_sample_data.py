@@ -3,7 +3,7 @@ One-shot, idempotent sample data seeder.
 Run with: python setup_sample_data.py   (after `python manage.py migrate`)
 
 Creates:
-  - HR admin login
+  - HR admin login (password generated and printed)
   - Departments & Designations
   - 3 sample Employees (auto-generates login + welcome email to console)
   - 2 sample Interns (auto-generates login + welcome email to console)
@@ -12,6 +12,8 @@ Creates:
   - Sample Candidates, Colleges, Clients
 """
 import os
+import secrets
+import string
 import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
@@ -29,13 +31,19 @@ from clients.models import Client
 from internships.models import Intern
 
 
+def _gen_password(length=14):
+    alphabet = string.ascii_letters + string.digits + "!@#$%"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+
 def setup_hr_admin():
     if not User.objects.filter(username='hr_admin').exists():
+        pw = os.environ.get('HR_ADMIN_PASSWORD') or _gen_password()
         User.objects.create_superuser(
-            username='hr_admin', email='hr@plsofttech.com', password='admin@123',
+            username='hr_admin', email='hr@plsofttech.com', password=pw,
             role='hr', first_name='HR', last_name='Administrator', must_change_password=False,
         )
-        print("✓ HR admin created → hr_admin / admin@123")
+        print(f"✓ HR admin created → hr_admin / {pw}")
     else:
         print("… HR admin already exists")
 

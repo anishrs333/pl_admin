@@ -108,6 +108,11 @@ class Employee(models.Model):
         super().save(*args, **kwargs)
         if is_new:
             self._provision_login()
+        if self.user_id:
+            should_be_active = self.status != 'inactive'
+            if self.user.is_active != should_be_active:
+                self.user.is_active = should_be_active
+                self.user.save(update_fields=['is_active'])
 
     def __str__(self):
         return f'{self.employee_id} — {self.full_name}'

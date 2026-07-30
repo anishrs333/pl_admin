@@ -19,7 +19,7 @@ const selfTabs = [
 export default function BottomNav({ onOpenSidebar }) {
   const { user } = useAuth()
   const location = useLocation()
-  const isHR = user?.role === 'hr'
+  const isHR = user?.role === 'hr' || user?.role === 'hr_executive'
   const tabs = isHR ? hrTabs : selfTabs
 
   return (

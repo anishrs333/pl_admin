@@ -2,6 +2,7 @@ from rest_framework import viewsets, filters, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from accounts.permissions import IsHR, IsHRorSelfReadOnly
 from .models import BreakRequest
 from .break_serializers import BreakRequestSerializer
@@ -11,7 +12,8 @@ from .views import _get_self_target
 class BreakRequestViewSet(viewsets.ModelViewSet):
     """Break request management — personal breaks and half days."""
     serializer_class = BreakRequestSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status']
     search_fields = ['employee__full_name', 'intern__name', 'reason']
     ordering = ['-created_at']
 
@@ -26,19 +28,25 @@ class BreakRequestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = BreakRequest.objects.select_related('employee', 'intern', 'reviewer').all()
         user = self.request.user
-        if user.role == 'hr' or user.is_superuser:
-            return qs
-
-        kind, profile = _get_self_target(user)
-        if kind == 'employee':
-            return qs.filter(employee=profile)
-        if kind == 'intern':
-            return qs.filter(intern=profile)
-        return qs.none()
+        if user.is_hr or user.is_superuser:
+            qs_all = qs
+        else:
+            kind, profile = _get_self_target(user)
+            if kind == 'employee':
+                qs_all = qs.filter(employee=profile)
+            elif kind == 'intern':
+                qs_all = qs.filter(intern=profile)
+            else:
+                qs_all = qs.none()
+        # Manual status filter as fallback
+        status_param = self.request.query_params.get('status')
+        if status_param and status_param != 'all':
+            qs_all = qs_all.filter(status=status_param)
+        return qs_all
 
     def perform_create(self, serializer):
         user = self.request.user
-        if not (user.role == 'hr' or user.is_superuser):
+        if not (user.is_hr or user.is_superuser):
             kind, profile = _get_self_target(user)
             if kind == 'employee':
                 serializer.save(employee=profile)

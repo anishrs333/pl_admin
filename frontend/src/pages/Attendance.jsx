@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Clock, CheckCircle, XCircle, Search, Plus, CalendarDays, FileText, ChevronDown, Users, GraduationCap, MapPin, Briefcase, Coffee, UtensilsCrossed, Timer } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, Search, Plus, CalendarDays, FileText, ChevronDown, Download, Users, GraduationCap, MapPin, Briefcase, Coffee, UtensilsCrossed, Timer, Pencil } from 'lucide-react'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
@@ -26,6 +28,56 @@ const STATUS_BADGE = {
   pending:  'badge-amber',
   approved: 'badge-green',
   rejected: 'badge-red',
+}
+
+const DATE_RANGE_OPTIONS = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'this_week', label: 'This Week' },
+  { value: 'last_week', label: 'Last Week' },
+  { value: 'this_month', label: 'This Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'custom', label: 'Custom Range' },
+]
+
+function computeDateRange(range, customFrom, customTo) {
+  const today = new Date()
+  const fmt = d => d.toISOString().split('T')[0]
+  switch (range) {
+    case 'today':
+      return { start: fmt(today), end: fmt(today) }
+    case 'yesterday': {
+      const y = new Date(today); y.setDate(y.getDate() - 1)
+      return { start: fmt(y), end: fmt(y) }
+    }
+    case 'this_week': {
+      const monday = new Date(today)
+      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7))
+      return { start: fmt(monday), end: fmt(today) }
+    }
+    case 'last_week': {
+      const thisMonday = new Date(today)
+      thisMonday.setDate(today.getDate() - ((today.getDay() + 6) % 7))
+      const lastMonday = new Date(thisMonday)
+      lastMonday.setDate(thisMonday.getDate() - 7)
+      const lastSunday = new Date(lastMonday)
+      lastSunday.setDate(lastMonday.getDate() + 6)
+      return { start: fmt(lastMonday), end: fmt(lastSunday) }
+    }
+    case 'this_month': {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1)
+      return { start: fmt(first), end: fmt(today) }
+    }
+    case 'last_month': {
+      const first = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const last = new Date(today.getFullYear(), today.getMonth(), 0)
+      return { start: fmt(first), end: fmt(last) }
+    }
+    case 'custom':
+      return { start: customFrom || fmt(today), end: customTo || fmt(today) }
+    default:
+      return { start: fmt(today), end: fmt(today) }
+  }
 }
 
 function LeaveForm({ isHR, onClose, onSuccess }) {
@@ -227,17 +279,29 @@ function BreakCard({ breakReq, isHR, onApprove, onReject }) {
 export default function Attendance() {
   const qc = useQueryClient()
   const { user } = useAuth()
-  const isHR = user?.role === 'hr'
+  const isHR = user?.role === 'hr' || user?.role === 'hr_executive'
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('attendance') // 'attendance' | 'leaves' | 'breaks'
   const [leaveModal, setLeaveModal] = useState(false)
   const [breakModal, setBreakModal] = useState(false)
   const [leaveFilter, setLeaveFilter] = useState('all')
   const [breakFilter, setBreakFilter] = useState('all')
+  const [dateRange, setDateRange] = useState('today')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [downloading, setDownloading] = useState(false)
+  const [editModal, setEditModal] = useState(false)
+  const [editForm, setEditForm] = useState({ person_type: '', person_id: null, date: '', check_in: '', check_out: '', status: 'present' })
+
+  const { start: queryStart, end: queryEnd } = computeDateRange(dateRange, customFrom, customTo)
+  const isMultiDay = queryStart !== queryEnd
 
   const { data: todayAtt, isLoading } = useQuery({
-    queryKey: ['attendance-today'],
-    queryFn: () => api.get('/attendance/today/').then(r => r.data),
+    queryKey: ['attendance-today', queryStart, queryEnd],
+    queryFn: () => {
+      const params = new URLSearchParams({ start_date: queryStart, end_date: queryEnd })
+      return api.get(`/attendance/today/?${params}`).then(r => r.data)
+    },
     enabled: isHR
   })
   const { data: emps } = useQuery({
@@ -309,6 +373,24 @@ export default function Attendance() {
     onSuccess: () => { qc.invalidateQueries(['breaks']); toast.success('Break request rejected') },
     onError: () => toast.error('Failed to reject')
   })
+  const markManualMutation = useMutation({
+    mutationFn: (data) => api.post('/attendance/mark_manual/', data),
+    onSuccess: () => { qc.invalidateQueries(['attendance-today']); toast.success('Attendance updated'); setEditModal(false) },
+    onError: (e) => toast.error(e.response?.data?.error || 'Failed to update attendance')
+  })
+
+  const openEditModal = (person, att, dateOverride) => {
+    const attDate = dateOverride || att?.date || queryStart
+    setEditForm({
+      person_type: person.type,
+      person_id: person.id,
+      date: attDate,
+      check_in: att?.check_in ? att.check_in.slice(0, 16) : '',
+      check_out: att?.check_out ? att.check_out.slice(0, 16) : '',
+      status: att?.status || 'present',
+    })
+    setEditModal(true)
+  }
 
   const employees = (emps?.results || emps || [])
   const internList = (interns?.results || interns || [])
@@ -324,6 +406,80 @@ export default function Attendance() {
   const absentInterns = Math.max(internList.length - presentInterns, 0)
   const leaves = leavesData?.results || leavesData || []
   const breaks = breaksData?.results || breaksData || []
+
+  // Group attendance by date for multi-day view
+  const groupedByDate = useMemo(() => {
+    if (!isMultiDay) return null
+    const groups = {}
+    today.forEach(a => {
+      if (!groups[a.date]) groups[a.date] = []
+      groups[a.date].push(a)
+    })
+    return groups
+  }, [today, isMultiDay])
+
+  // Export CSV handler
+  const exportCSV = () => {
+    const rows = [['Name', 'Type', 'Date', 'Login Time', 'Logout Time', 'Hours', 'Status']]
+    if (isMultiDay && groupedByDate) {
+      Object.keys(groupedByDate).sort().forEach(date => {
+        groupedByDate[date].forEach(a => {
+          rows.push([
+            a.employee_name, a.person_type, date,
+            a.check_in ? new Date(a.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+            a.check_out ? new Date(a.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+            a.work_hours || '', a.status
+          ])
+        })
+      })
+    } else {
+      filteredRoster.forEach(p => {
+        const a = today.find(rec => (p.type === 'employee' ? rec.employee === p.id : rec.intern === p.id))
+        rows.push([
+          p.name, p.type, queryStart,
+          a?.check_in ? new Date(a.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          a?.check_out ? new Date(a.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          a?.work_hours || '', a?.status || 'Absent'
+        ])
+      })
+    }
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `Attendance_${queryStart}_to_${queryEnd}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+    toast.success('CSV downloaded')
+  }
+
+  // Export PDF handler
+  const exportPDF = async () => {
+    setDownloading(true)
+    try {
+      const type = (dateRange === 'this_week' || dateRange === 'last_week') ? 'weekly' : 'monthly'
+      const response = await api.get('/attendance/report_pdf/', {
+        params: { start_date: queryStart, end_date: queryEnd, type },
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Attendance_${type}_${queryStart}_to_${queryEnd}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      toast.success('PDF downloaded')
+    } catch {
+      toast.error('Failed to generate PDF')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   // Employee self-service view
   if (!isHR) {
@@ -460,7 +616,7 @@ export default function Attendance() {
                       <span className="break-schedule-name">Lunch Break</span>
                       <span className="break-schedule-time">1:15 PM – 2:00 PM</span>
                     </div>
-                    <span className="badge badge-amber" style={{ fontSize: 10 }}>1 hour</span>
+                    <span className="badge badge-amber" style={{ fontSize: 10 }}>45 min</span>
                   </div>
                   <div className="break-schedule-item">
                     <div className="break-schedule-icon" style={{ background: 'var(--green-50)' }}>
@@ -495,8 +651,8 @@ export default function Attendance() {
                 <option value="rejected">Rejected</option>
               </select>
             </div>
-            {leavesLoading ? <div className="loading-center"><div className="spinner" /></div> : leaves.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--slate)', fontSize: 13 }}>No leave requests yet.</div>
+            {leavesLoading ? <Loading text="Loading leaves…" /> : leaves.length === 0 ? (
+              <EmptyState icon={CalendarDays} title="No leave requests yet" description="When you request leaves, they'll appear here." />
             ) : leaves.map(l => (
               <LeaveCard key={l.id} leave={l} isHR={false} />
             ))}
@@ -526,7 +682,7 @@ export default function Attendance() {
                     <span className="break-schedule-name">Lunch Break</span>
                     <span className="break-schedule-time">1:15 PM – 2:00 PM</span>
                   </div>
-                  <span className="badge badge-amber" style={{ fontSize: 10 }}>1 hour</span>
+                  <span className="badge badge-amber" style={{ fontSize: 10 }}>45 min</span>
                 </div>
                 <div className="break-schedule-item">
                   <div className="break-schedule-icon" style={{ background: 'var(--green-50)' }}>
@@ -552,8 +708,8 @@ export default function Attendance() {
                   <option value="rejected">Rejected</option>
                 </select>
               </div>
-              {breaksLoading ? <div className="loading-center"><div className="spinner" /></div> : breaks.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: 'var(--slate)', fontSize: 13 }}>No break requests yet.</div>
+              {breaksLoading ? <Loading text="Loading breaks…" /> : breaks.length === 0 ? (
+                <EmptyState icon={Coffee} title="No break requests yet" description="When you request breaks, they'll appear here." />
               ) : breaks.map(b => (
                 <BreakCard key={b.id} breakReq={b} isHR={false} />
               ))}
@@ -605,87 +761,221 @@ export default function Attendance() {
           </div>
 
           <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '24px 24px 20px', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div className="toolbar" style={{ flex: '1 1 280px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <div className="search-wrap" style={{ flex: '1 1 200px' }}>
+            <div style={{ padding: '24px 24px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="toolbar" style={{ flex: '1 1 400px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="search-wrap" style={{ flex: '1 1 180px' }}>
                   <Search className="search-icon" size={16} />
                   <input className="form-control" style={{ paddingLeft: 36, width: '100%' }} placeholder="Search employee or intern…" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
-                <select className="form-control" style={{ flex: '0 0 auto', width: 'auto', minWidth: 120 }}>
-                  <option>Today</option>
-                  <option>Yesterday</option>
-                  <option>This Week</option>
+                <select
+                  className="form-control toolbar-select"
+                  style={{ flex: '0 0 auto', width: 'auto', minWidth: 130 }}
+                  value={dateRange}
+                  onChange={e => setDateRange(e.target.value)}
+                >
+                  {DATE_RANGE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
+                {dateRange === 'custom' && (
+                  <>
+                    <input
+                      type="date"
+                      className="form-control"
+                      style={{ flex: '0 0 auto', width: 'auto' }}
+                      value={customFrom}
+                      onChange={e => setCustomFrom(e.target.value)}
+                    />
+                    <span style={{ color: 'var(--slate)', fontSize: 13 }}>to</span>
+                    <input
+                      type="date"
+                      className="form-control"
+                      style={{ flex: '0 0 auto', width: 'auto' }}
+                      value={customTo}
+                      onChange={e => setCustomTo(e.target.value)}
+                    />
+                  </>
+                )}
               </div>
-              <button className="btn btn-secondary" style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}>
-                <FileText size={15} /> Export CSV
-              </button>
+              <div className="export-btns" style={{ display: 'flex', gap: 8, flex: '0 0 auto' }}>
+                <button className="btn btn-secondary" style={{ whiteSpace: 'nowrap' }} onClick={exportCSV}>
+                  <FileText size={15} /> Export CSV
+                </button>
+                <button className="btn btn-secondary" style={{ whiteSpace: 'nowrap' }} onClick={exportPDF} disabled={downloading}>
+                  <Download size={15} /> {downloading ? 'Generating…' : 'Export PDF'}
+                </button>
+              </div>
             </div>
-            {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
-              <ResponsiveTable
-                headers={['Name', 'Type', 'Login Time', 'Logout Time', 'Hours', 'Status', '']}
-                data={filteredRoster}
-                renderRow={(person) => {
-                  const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
-                  return (
-                    <tr key={`${person.type}-${person.id}`}>
-                      <td>
-                        <div className="name-cell">
-                          {person.picture
-                            ? <img src={person.picture} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }} />
-                            : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--primary-50)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13, border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
-                          }
-                          <div><div className="name">{person.name}</div><div className="sub">{person.code}</div></div>
-                        </div>
-                      </td>
-                      <td><span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span></td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</td>
-                      <td><span className={`badge ${att ? 'badge-green' : 'badge-gray'}`}>{att ? att.status : 'Absent'}</span></td>
-                      <td>
-                        <button className="action-btn" title="View details"><Search size={14} /></button>
-                      </td>
-                    </tr>
-                  )
-                }}
-                renderCard={(person) => {
-                  const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
-                  return (
-                    <MobileCard
-                      key={`${person.type}-${person.id}`}
-                      title={person.name}
-                      subtitle={person.code}
-                      avatar={
-                        person.picture
-                          ? <img src={person.picture} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-                          : <div className="avatar avatar-a" style={{ width: 32, height: 32, fontSize: 14 }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
-                      }
-                      badges={
-                        <>
-                          <span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span>
-                          <span className={`badge ${att ? 'badge-green' : 'badge-red'}`}>{att ? att.status : 'Absent'}</span>
-                        </>
-                      }
-                    >
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, padding: 12, background: 'var(--surface)', borderRadius: 8, fontSize: 13 }}>
-                        <div>
-                          <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Login</div>
-                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                        </div>
-                        <div>
-                          <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Logout</div>
-                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                        </div>
-                        <div style={{ gridColumn: 'span 2' }}>
-                          <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Total Hours</div>
-                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</div>
-                        </div>
+            {isLoading ? <Loading /> : (
+              isMultiDay && groupedByDate ? (
+                // Multi-day view: grouped by date
+                <div>
+                  {Object.keys(groupedByDate).sort().map(date => (
+                    <div key={date}>
+                      <div style={{ padding: '10px 24px', background: 'var(--indigo-50)', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: 13, color: 'var(--indigo)' }}>
+                        {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        <span style={{ marginLeft: 8, fontWeight: 400, color: 'var(--slate)', fontSize: 12 }}>
+                          — {groupedByDate[date].length} record{groupedByDate[date].length !== 1 ? 's' : ''}
+                        </span>
                       </div>
-                    </MobileCard>
-                  )
-                }}
-              />
+                      <ResponsiveTable
+                        headers={['Name', 'Type', 'Login Time', 'Logout Time', 'Hours', 'Status', 'Actions']}
+                        data={filteredRoster.filter(p =>
+                          groupedByDate[date].some(a =>
+                            p.type === 'employee' ? a.employee === p.id : a.intern === p.id
+                          )
+                        )}
+                        renderRow={(person) => {
+                          const att = groupedByDate[date].find(a =>
+                            person.type === 'employee' ? a.employee === person.id : a.intern === person.id
+                          )
+                          if (!att) return null
+                          return (
+                            <tr key={`${date}-${person.type}-${person.id}`}>
+                              <td>
+                                <div className="name-cell">
+                                  {person.picture
+                                    ? <img src={person.picture} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }} />
+                                    : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--primary-50)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13, border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                                  }
+                                  <div><div className="name">{person.name}</div><div className="sub">{person.code}</div></div>
+                                </div>
+                              </td>
+                              <td><span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span></td>
+                              <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                              <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                              <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att.work_hours ? `${att.work_hours}h` : '—'}</td>
+                              <td><span className={`badge ${att.status === 'present' ? 'badge-green' : att.status === 'late' ? 'badge-amber' : 'badge-red'}`}>{att.status}{att.is_manually_edited ? ' (Edited)' : ''}</span></td>
+                              <td>
+                                <button className="btn btn-sm" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => openEditModal(person, att, date)}>
+                                  <Pencil size={13} /> Edit
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        }}
+                        renderCard={(person) => {
+                          const att = groupedByDate[date].find(a =>
+                            person.type === 'employee' ? a.employee === person.id : a.intern === person.id
+                          )
+                          if (!att) return null
+                          return (
+                            <MobileCard
+                              key={`${date}-${person.type}-${person.id}`}
+                              title={person.name}
+                              subtitle={person.code}
+                              avatar={
+                                person.picture
+                                  ? <img src={person.picture} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                                  : <div className="avatar avatar-a" style={{ width: 32, height: 32, fontSize: 14 }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                              }
+                              badges={
+                                <>
+                                  <span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span>
+                                  <span className={`badge ${att.status === 'present' ? 'badge-green' : att.status === 'late' ? 'badge-amber' : 'badge-red'}`}>{att.status}{att.is_manually_edited ? ' (Edited)' : ''}</span>
+                                </>
+                                }
+                                actions={
+                                  <button className="btn btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => openEditModal(person, att, date)}>
+                                    <Pencil size={12} /> Edit
+                                  </button>
+                                }
+                            >
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, padding: 12, background: 'var(--surface)', borderRadius: 8, fontSize: 13 }}>
+                                <div>
+                                  <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Login</div>
+                                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                                </div>
+                                <div>
+                                  <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Logout</div>
+                                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                                </div>
+                                <div style={{ gridColumn: 'span 2' }}>
+                                  <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Total Hours</div>
+                                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att.work_hours ? `${att.work_hours}h` : '—'}</div>
+                                </div>
+                              </div>
+                            </MobileCard>
+                          )
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // Single day view (original layout)
+                <ResponsiveTable
+                  headers={['Name', 'Type', 'Login Time', 'Logout Time', 'Hours', 'Status', 'Actions']}
+                  data={filteredRoster}
+                  renderRow={(person) => {
+                    const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
+                    return (
+                      <tr key={`${person.type}-${person.id}`}>
+                        <td>
+                          <div className="name-cell">
+                            {person.picture
+                              ? <img src={person.picture} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }} />
+                              : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--primary-50)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13, border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                            }
+                            <div><div className="name">{person.name}</div><div className="sub">{person.code}</div></div>
+                          </div>
+                        </td>
+                        <td><span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span></td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</td>
+                        <td><span className={`badge ${att ? (att.status === 'present' ? 'badge-green' : att.status === 'late' ? 'badge-amber' : 'badge-red') : 'badge-gray'}`}>{att ? att.status : 'Absent'}{att?.is_manually_edited ? ' (Edited)' : ''}</span></td>
+                        <td>
+                          <button className="btn btn-sm" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => openEditModal(person, att)}>
+                            <Pencil size={13} /> Edit
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  }}
+                  renderCard={(person) => {
+                    const att = today.find(a => (person.type === 'employee' ? a.employee === person.id : a.intern === person.id))
+                    return (
+                      <MobileCard
+                        key={`${person.type}-${person.id}`}
+                        title={person.name}
+                        subtitle={person.code}
+                        avatar={
+                          person.picture
+                            ? <img src={person.picture} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                            : <div className="avatar avatar-a" style={{ width: 32, height: 32, fontSize: 14 }}>{person.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                        }
+                        badges={
+                          <>
+                            <span className={`badge ${person.type === 'employee' ? 'badge-indigo' : 'badge-amber'}`}>{person.type === 'employee' ? 'Employee' : 'Intern'}</span>
+                          <span className={`badge ${att ? (att.status === 'present' ? 'badge-green' : att.status === 'late' ? 'badge-amber' : 'badge-red') : 'badge-red'}`}>{att ? att.status : 'Absent'}{att?.is_manually_edited ? ' (Edited)' : ''}</span>
+                        </>
+                        }
+                        actions={
+                          <button className="btn btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => openEditModal(person, att)}>
+                            <Pencil size={12} /> Edit
+                          </button>
+                        }
+                      >
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, padding: 12, background: 'var(--surface)', borderRadius: 8, fontSize: 13 }}>
+                          <div>
+                            <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Login</div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                          </div>
+                          <div>
+                            <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Logout</div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.check_out ? new Date(att.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                          </div>
+                          <div style={{ gridColumn: 'span 2' }}>
+                            <div style={{ color: 'var(--ink-light)', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Total Hours</div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{att?.work_hours ? `${att.work_hours}h` : '—'}</div>
+                          </div>
+                        </div>
+                      </MobileCard>
+                    )
+                  }}
+                />
+              )
             )}
           </div>
         </>
@@ -702,8 +992,8 @@ export default function Attendance() {
               <option value="rejected">Rejected</option>
             </select>
           </div>
-          {leavesLoading ? <div className="loading-center"><div className="spinner" /></div> : leaves.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--slate)', fontSize: 13 }}>No leave requests found.</div>
+          {leavesLoading ? <Loading text="Loading leaves…" /> : leaves.length === 0 ? (
+            <EmptyState icon={CalendarDays} title="No leave requests found" description="No leave requests match your filters." />
           ) : leaves.map(l => (
             <LeaveCard
               key={l.id} leave={l} isHR={true}
@@ -725,8 +1015,8 @@ export default function Attendance() {
               <option value="rejected">Rejected</option>
             </select>
           </div>
-          {breaksLoading ? <div className="loading-center"><div className="spinner" /></div> : breaks.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--slate)', fontSize: 13 }}>No break requests found.</div>
+          {breaksLoading ? <Loading text="Loading breaks…" /> : breaks.length === 0 ? (
+            <EmptyState icon={Coffee} title="No break requests found" description="No break requests match your filters." />
           ) : breaks.map(b => (
             <BreakCard
               key={b.id} breakReq={b} isHR={true}
@@ -735,6 +1025,44 @@ export default function Attendance() {
             />
           ))}
         </div>
+      )}
+
+      {editModal && (
+        <Modal title="Edit Attendance" onClose={() => setEditModal(false)} footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setEditModal(false)}>Cancel</button>
+            <button className="btn btn-primary" disabled={markManualMutation.isPending} onClick={() => {
+              const payload = { person_type: editForm.person_type, person_id: editForm.person_id, date: editForm.date, status: editForm.status }
+              if (editForm.check_in) payload.check_in = editForm.check_in
+              if (editForm.check_out) payload.check_out = editForm.check_out
+              markManualMutation.mutate(payload)
+            }}>
+              {markManualMutation.isPending ? 'Saving…' : 'Save Changes'}
+            </button>
+          </>
+        }>
+          <div className="form-group">
+            <label className="form-label" style={{ fontWeight: 600 }}>Date</label>
+            <input type="date" className="form-control" value={editForm.date} disabled style={{ opacity: 0.7 }} />
+          </div>
+          <div className="form-group">
+            <label className="form-label" style={{ fontWeight: 600 }}>Login Time</label>
+            <input type="datetime-local" className="form-control" value={editForm.check_in} onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label className="form-label" style={{ fontWeight: 600 }}>Logout Time</label>
+            <input type="datetime-local" className="form-control" value={editForm.check_out} onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label className="form-label" style={{ fontWeight: 600 }}>Status</label>
+            <select className="form-control" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="late">Late</option>
+              <option value="half_day">Half Day</option>
+            </select>
+          </div>
+        </Modal>
       )}
 
     </div>

@@ -5,7 +5,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.contrib.auth import authenticate
 from .models import User
-from .serializers import LoginSerializer, ChangePasswordSerializer, MeSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer, MeSerializer, UserListSerializer
+from .permissions import IsHR
 
 
 class LoginView(TokenObtainPairView):
@@ -22,6 +23,15 @@ class MeView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class UserListView(generics.ListAPIView):
+    """List users with HR/TL roles — for task assignment dropdowns."""
+    permission_classes = [IsHR]
+    serializer_class = UserListSerializer
+
+    def get_queryset(self):
+        return User.objects.filter(role__in=['hr', 'hr_executive'], is_active=True).order_by('first_name')
 
 
 class ChangePasswordView(APIView):

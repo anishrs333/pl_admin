@@ -1,12 +1,17 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit2, Trash2, Camera, Users, Loader2, Mail } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Camera, Users, Loader2, Mail, Send, FileText } from 'lucide-react'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
 import ResponsiveTable from '../components/ResponsiveTable'
 import MobileCard from '../components/MobileCard'
+import SendPayslipModal from '../components/SendPayslipModal'
+import PayslipListModal from '../components/PayslipListModal'
+import { useAuth } from '../context/AuthContext'
 
 const statusBadge = { active: 'badge-green', inactive: 'badge-gray', probation: 'badge-amber', on_leave: 'badge-indigo' }
 const avatarColors = ['#2563EB', '#7C3AED', '#10B981', '#F59E0B']
@@ -31,6 +36,8 @@ function Avatar({ emp, size = 36 }) {
 
 export default function Employees() {
   const qc = useQueryClient()
+  const { user } = useAuth()
+  const isFullHR = user?.role === 'hr'
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -38,6 +45,8 @@ export default function Employees() {
   const [picFile, setPicFile] = useState(null)
   const [picPreview, setPicPreview] = useState(null)
   const picRef = useRef(null)
+  const [payslipEmp, setPayslipEmp] = useState(null)
+  const [viewPayslips, setViewPayslips] = useState(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['employees', search],
@@ -168,12 +177,12 @@ export default function Employees() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: '18px 22px 0' }}>
+        <div className="card-header-mobile">
           <div className="search-wrap" style={{ marginBottom: 18 }}>
             <Search className="search-icon" size={16} />
             <input
               className="form-control"
-              style={{ paddingLeft: 36, width: '100%', maxWidth: 320 }}
+              style={{ paddingLeft: 36, width: '100%' }}
               placeholder="Search by name, email, ID…"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -181,7 +190,8 @@ export default function Employees() {
           </div>
         </div>
 
-        {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
+        {isLoading ? <Loading /> : (
+          employees.length === 0 ? <EmptyState icon={Users} title="No employees yet" description="Add your first employee to get started." /> :
           <ResponsiveTable
             headers={['Employee', 'ID', 'Department', 'Designation', 'Status', 'Actions']}
             data={employees}
@@ -199,6 +209,8 @@ export default function Employees() {
                 <td><span className={`badge ${statusBadge[emp.status] || 'badge-gray'}`}>{emp.status.replace('_', ' ')}</span></td>
                 <td>
                   <div className="action-btns">
+                    {isFullHR && <button className="action-btn" title="Send Payslip" onClick={() => setPayslipEmp(emp)}><Send size={13} /></button>}
+                    <button className="action-btn" title="View Payslips" onClick={() => setViewPayslips(emp)}><FileText size={13} /></button>
                     <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /></button>
                     <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /></button>
@@ -220,6 +232,8 @@ export default function Employees() {
                 }
                 actions={
                   <>
+                    {isFullHR && <button className="action-btn" onClick={() => setPayslipEmp(emp)}><Send size={13} /> Send Payslip</button>}
+                    <button className="action-btn" onClick={() => setViewPayslips(emp)}><FileText size={13} /> Payslips</button>
                     <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /> Resend Email</button>
                     <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /> Delete</button>
@@ -306,6 +320,7 @@ export default function Employees() {
                 <option value="on_leave">On leave</option>
                 <option value="inactive">Inactive</option>
               </select>
+              <div style={{ fontSize: 11, color: 'var(--slate)', marginTop: 4 }}>Setting status to Inactive will immediately block this user's login.</div>
             </div>
           </div>
           <div className="form-group"><label className="form-label">Address</label><textarea className="form-control" rows={2} value={form.address} onChange={e => set('address', e.target.value)} /></div>
@@ -319,6 +334,14 @@ export default function Employees() {
             </div>
           )}
         </Modal>
+      )}
+
+      {payslipEmp && (
+        <SendPayslipModal person={payslipEmp} type="employee" onClose={() => setPayslipEmp(null)} />
+      )}
+
+      {viewPayslips && (
+        <PayslipListModal person={viewPayslips} type="employee" onClose={() => setViewPayslips(null)} />
       )}
     </div>
   )

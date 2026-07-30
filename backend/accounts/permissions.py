@@ -2,9 +2,15 @@ from rest_framework import permissions
 
 
 class IsHR(permissions.BasePermission):
-    """Only HR users can access."""
+    """HR users (full or executive) can access."""
     def has_permission(self, request, view):
-        return request.user and (request.user.role == 'hr' or request.user.is_superuser)
+        return request.user and request.user.is_authenticated and (request.user.role in ('hr', 'hr_executive') or request.user.is_superuser)
+
+
+class IsFullHR(permissions.BasePermission):
+    """Only full HR administrators can access (not hr_executive)."""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and (request.user.role == 'hr' or request.user.is_superuser)
 
 
 class IsHRorSelfReadOnly(permissions.BasePermission):
@@ -32,7 +38,7 @@ class IsHRorSelfReadOnly(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if user.role == 'hr' or user.is_superuser:
+        if user.role in ('hr', 'hr_executive') or user.is_superuser:
             return True
         return self._is_owner(request, obj)
 

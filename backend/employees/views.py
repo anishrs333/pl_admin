@@ -25,7 +25,7 @@ class DesignationViewSet(viewsets.ModelViewSet):
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    """Employee management. HR sees/manages everyone; an employee can view their own record."""
+    """Employee management. HR/TL sees everyone; an employee can view their own record."""
     serializer_class = EmployeeSerializer
     permission_classes = [IsHRorSelfReadOnly]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
@@ -41,7 +41,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Employee.objects.select_related('department', 'designation')
         user = self.request.user
-        if user.role == 'hr' or user.is_superuser:
+        if user.is_hr or user.is_superuser:
             return qs
         return qs.filter(user=user)
 

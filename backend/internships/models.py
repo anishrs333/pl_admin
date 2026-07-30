@@ -11,6 +11,9 @@ class Intern(models.Model):
         ('terminated', 'Terminated'),
     ]
 
+    INTERNSHIP_TYPE_CHOICES = [('unpaid', 'Non-Paid'), ('paid', 'Paid')]
+    PAYMENT_AMOUNT_CHOICES = [(3000, '₹3,000'), (5000, '₹5,000')]
+
     intern_id = models.CharField(max_length=30, unique=True, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='intern_profile', null=True, blank=True)
 
@@ -21,6 +24,10 @@ class Intern(models.Model):
     domain = models.CharField(max_length=100)
     description = models.TextField(blank=True, help_text='Brief bio or internship objective')
     mentor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='mentees')
+
+    internship_type = models.CharField(max_length=10, choices=INTERNSHIP_TYPE_CHOICES, default='unpaid')
+    stipend_amount = models.IntegerField(choices=PAYMENT_AMOUNT_CHOICES, null=True, blank=True)
+    payment_date = models.DateField(null=True, blank=True, help_text='Date the intern paid the internship fee')
 
     start_date = models.DateField()
     end_date = models.DateField()
@@ -35,8 +42,17 @@ class Intern(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    def clean(self):
+        super().clean()
+        if self.internship_type == 'unpaid':
+            self.stipend_amount = None
+            self.payment_date = None
+        elif self.internship_type == 'paid':
+            valid = [c[0] for c in self.PAYMENT_AMOUNT_CHOICES]
+            if self.stipend_amount not in valid:
+                raise models.ValidationError({'stipend_amount': 'Paid internship must have a fee of ₹3,000 or ₹5,000.'})
+
     def _generate_id(self):
-        """Generate ID: INT-PL-001, INT-PL-002, etc."""
         seq = Intern.objects.count() + 1
         candidate = f'INT-PL-{seq:03d}'
         while Intern.objects.filter(intern_id=candidate).exists():
@@ -80,13 +96,22 @@ class Intern(models.Model):
             },
         )
 
+    def _sync_user_active(self):
+        if self.user_id:
+            should_be_active = self.status not in ('completed', 'terminated')
+            if self.user.is_active != should_be_active:
+                self.user.is_active = should_be_active
+                self.user.save(update_fields=['is_active'])
+
     def save(self, *args, **kwargs):
         is_new = self._state.adding
+        self.clean()
         if not self.intern_id:
             self.intern_id = self._generate_id()
         super().save(*args, **kwargs)
         if is_new:
             self._provision_login()
+        self._sync_user_active()
 
     def __str__(self):
         return f'{self.intern_id} — {self.name}'

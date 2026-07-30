@@ -106,5 +106,6 @@ function SelfDashboard() {
 
 export default function Dashboard() {
   const { user } = useAuth()
-  return user?.role === 'hr' ? <HRDashboard/> : <SelfDashboard/>
+  const isHRorTL = user?.role === 'hr' || user?.role === 'hr_executive'
+  return isHRorTL ? <HRDashboard/> : <SelfDashboard/>
 }

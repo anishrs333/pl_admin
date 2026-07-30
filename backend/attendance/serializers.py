@@ -7,12 +7,15 @@ class AttendanceSerializer(serializers.ModelSerializer):
     employee_code = serializers.SerializerMethodField()
     employee_picture = serializers.SerializerMethodField()
     person_type = serializers.CharField(read_only=True)
+    is_manually_edited = serializers.BooleanField(read_only=True)
+    modified_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Attendance
         fields = [
             'id', 'employee', 'intern', 'employee_name', 'employee_code', 'employee_picture', 'person_type',
             'date', 'check_in', 'check_out', 'status', 'work_hours', 'notes',
+            'is_manually_edited', 'modified_by_name',
         ]
 
     def get_employee_name(self, obj):
@@ -26,6 +29,11 @@ class AttendanceSerializer(serializers.ModelSerializer):
         pic = obj.employee.profile_picture if obj.employee else (obj.intern.profile_picture if obj.intern else None)
         if pic and request:
             return request.build_absolute_uri(pic.url)
+        return None
+
+    def get_modified_by_name(self, obj):
+        if obj.modified_by:
+            return obj.modified_by.get_full_name() or obj.modified_by.username
         return None
 
 

@@ -1,14 +1,14 @@
 from rest_framework import viewsets, filters, parsers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.utils import timezone
-from accounts.permissions import IsHR, IsHRorSelfReadOnly
+from django.http import HttpResponse
+from accounts.permissions import IsHR, IsFullHR, IsHRorSelfReadOnly
 from .models import Intern, InternTask
 from .serializers import InternSerializer, InternTaskSerializer
 
 
 class InternViewSet(viewsets.ModelViewSet):
-    """Intern management."""
+    """Intern management. HR/TL sees everyone; an intern can view their own record."""
     serializer_class = InternSerializer
     permission_classes = [IsHRorSelfReadOnly]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
@@ -19,12 +19,14 @@ class InternViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsHR()]
+        if self.action == 'receipt_pdf':
+            return [IsFullHR()]
         return [IsHRorSelfReadOnly()]
 
     def get_queryset(self):
         qs = Intern.objects.select_related('mentor')
         user = self.request.user
-        if user.role == 'hr' or user.is_superuser:
+        if user.is_hr or user.is_superuser:
             return qs
         return qs.filter(user=user)
 
@@ -54,6 +56,22 @@ class InternViewSet(viewsets.ModelViewSet):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+    @action(detail=True, methods=['get'], permission_classes=[IsFullHR], url_path='receipt-pdf')
+    def receipt_pdf(self, request, pk=None):
+        """Download payment confirmation receipt PDF for a paid intern."""
+        intern = self.get_object()
+        if intern.internship_type != 'paid':
+            return Response(
+                {'detail': 'Receipt is only available for paid interns.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        from .intern_receipt_pdf import generate_intern_receipt_pdf
+        pdf_buffer = generate_intern_receipt_pdf(intern)
+        response = HttpResponse(pdf_buffer, content_type='application/pdf')
+        filename = f'receipt_{intern.intern_id}.pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
 
 class InternTaskViewSet(viewsets.ModelViewSet):
     """Daily task tracking for interns (separate from the shared Task app)."""
@@ -70,7 +88,7 @@ class InternTaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = InternTask.objects.select_related('intern')
         user = self.request.user
-        if user.role == 'hr' or user.is_superuser:
+        if user.is_hr or user.is_superuser:
             return qs
         if hasattr(user, 'intern_profile'):
             return qs.filter(intern=user.intern_profile)

@@ -1,15 +1,20 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit2, Trash2, Camera, GraduationCap, Loader2, Mail } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Camera, GraduationCap, Loader2, Mail, FileText, Send } from 'lucide-react'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
 import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
 import ResponsiveTable from '../components/ResponsiveTable'
 import MobileCard from '../components/MobileCard'
+import { useAuth } from '../context/AuthContext'
+import SendPayslipModal from '../components/SendPayslipModal'
+import PayslipListModal from '../components/PayslipListModal'
 
 const statusBadge = { active: 'badge-green', completed: 'badge-gray', terminated: 'badge-red' }
-const emptyForm = { name: '', email: '', mobile: '', college_name: '', domain: '', description: '', mentor: '', start_date: '', end_date: '', status: 'active', performance_score: '', certificate_issued: false }
+const emptyForm = { name: '', email: '', mobile: '', college_name: '', domain: '', description: '', mentor: '', start_date: '', end_date: '', status: 'active', performance_score: '', certificate_issued: false, internship_type: 'unpaid', stipend_amount: '', payment_date: '' }
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
@@ -27,6 +32,8 @@ function Avatar({ intern, size = 36 }) {
 }
 
 export default function Internships() {
+  const { user } = useAuth()
+  const isFullHR = user?.role === 'hr'
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)
@@ -35,6 +42,8 @@ export default function Internships() {
   const [picFile, setPicFile] = useState(null)
   const [picPreview, setPicPreview] = useState(null)
   const picRef = useRef(null)
+  const [payslipIntern, setPayslipIntern] = useState(null)
+  const [viewPayslips, setViewPayslips] = useState(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['internships', search],
@@ -47,7 +56,7 @@ export default function Internships() {
       try {
         const fd = new FormData()
         Object.entries(d).forEach(([k, v]) => {
-          if (['profile_picture', 'profile_picture_url', 'document'].includes(k)) return
+          if (['profile_picture', 'profile_picture_url', 'document', 'tasks'].includes(k)) return
           if (v !== null && v !== undefined && v !== '') fd.append(k, v)
         })
         if (picFile) fd.append('profile_picture', picFile)
@@ -67,7 +76,6 @@ export default function Internships() {
       }
     },
     onError: (e) => {
-      // Safe error extraction — handles malformed responses, non-JSON, 413, network errors
       try {
         const data = e.response?.data
         if (typeof data === 'string') {
@@ -95,6 +103,22 @@ export default function Internships() {
     onSuccess: (res) => toast.success(res.data?.detail || 'Email resent successfully'),
     onError: (e) => toast.error(e.response?.data?.detail || 'Failed to resend email')
   })
+
+  const downloadReceipt = async (internId, internId_code) => {
+    try {
+      const res = await api.get(`/internships/${internId}/receipt-pdf/`, { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `receipt_${internId_code}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to download receipt')
+    }
+  }
 
   const closeModal = () => {
     setModal(false)
@@ -169,16 +193,17 @@ export default function Internships() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: '18px 22px 0' }}>
+        <div className="card-header-mobile">
           <div className="search-wrap" style={{ marginBottom: 18 }}>
             <Search className="search-icon" size={16} />
-            <input className="form-control" style={{ paddingLeft: 36, width: '100%', maxWidth: 320 }} placeholder="Search by name, domain…" value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="form-control" style={{ paddingLeft: 36, width: '100%' }} placeholder="Search by name, domain…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
 
-        {isLoading ? <div className="loading-center"><div className="spinner" /></div> : (
+        {isLoading ? <Loading /> : (
+          interns.length === 0 ? <EmptyState icon={GraduationCap} title="No interns yet" description="Add your first intern to get started." /> :
           <ResponsiveTable
-            headers={['Intern', 'ID', 'College', 'Domain', 'Status', 'Actions']}
+            headers={['Intern', 'ID', 'College', 'Domain', 'Type', 'Status', 'Actions']}
             data={interns}
             renderRow={(intern) => (
               <tr key={intern.id}>
@@ -191,9 +216,15 @@ export default function Internships() {
                 <td><IDBadge code={intern.intern_id} label="INT" size="sm" /></td>
                 <td style={{ fontSize: 13 }}>{intern.college_name || '—'}</td>
                 <td style={{ fontSize: 13 }}>{intern.domain || '—'}</td>
+                <td><span className={`badge ${intern.internship_type === 'paid' ? 'badge-indigo' : 'badge-gray'}`}>{intern.internship_type === 'paid' ? 'Paid' : 'Non-Paid'}</span></td>
                 <td><span className={`badge ${statusBadge[intern.status] || 'badge-gray'}`}>{intern.status}</span></td>
                 <td>
                   <div className="action-btns">
+                    {isFullHR && <button className="action-btn" title="Send Payslip" onClick={() => setPayslipIntern(intern)}><Send size={13} /></button>}
+                    <button className="action-btn" title="View Payslips" onClick={() => setViewPayslips(intern)}><FileText size={13} /></button>
+                    {isFullHR && intern.internship_type === 'paid' && (
+                      <button className="action-btn" title="Download Payment Receipt" onClick={() => downloadReceipt(intern.id, intern.intern_id)}><FileText size={13} /> Receipt</button>
+                    )}
                     <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(intern.id) }}><Mail size={13} /></button>
                     <button className="action-btn" onClick={() => openEdit(intern)}><Edit2 size={13} /> Edit</button>
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove intern?')) deleteMutation.mutate(intern.id) }}><Trash2 size={13} /></button>
@@ -210,11 +241,17 @@ export default function Internships() {
                 badges={
                   <>
                     <IDBadge code={intern.intern_id} label="INT" size="sm" />
+                    <span className={`badge ${intern.internship_type === 'paid' ? 'badge-indigo' : 'badge-gray'}`}>{intern.internship_type === 'paid' ? 'Paid' : 'Non-Paid'}</span>
                     <span className={`badge ${statusBadge[intern.status] || 'badge-gray'}`}>{intern.status}</span>
                   </>
                 }
                 actions={
                   <>
+                    {isFullHR && <button className="action-btn" onClick={() => setPayslipIntern(intern)}><Send size={13} /> Send Payslip</button>}
+                    <button className="action-btn" onClick={() => setViewPayslips(intern)}><FileText size={13} /> Payslips</button>
+                    {isFullHR && intern.internship_type === 'paid' && (
+                      <button className="action-btn" onClick={() => downloadReceipt(intern.id, intern.intern_id)}><FileText size={13} /> Receipt</button>
+                    )}
                     <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(intern.id) }}><Mail size={13} /> Resend Email</button>
                     <button className="action-btn" onClick={() => openEdit(intern)}><Edit2 size={13} /> Edit</button>
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove intern?')) deleteMutation.mutate(intern.id) }}><Trash2 size={13} /> Delete</button>
@@ -274,9 +311,45 @@ export default function Internships() {
               <label className="form-label">Mentor</label>
               <select className="form-control" value={form.mentor || ''} onChange={e => set('mentor', e.target.value)}>
                 <option value="">Select mentor</option>
-                {(emps?.results || emps || []).map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
               </select>
             </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Internship Type *</label>
+              <div className="radio-group" style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="radio" name="internship_type" value="unpaid" checked={form.internship_type === 'unpaid'} onChange={e => { set('internship_type', e.target.value); set('stipend_amount', '') }} /> Non-Paid
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="radio" name="internship_type" value="paid" checked={form.internship_type === 'paid'} onChange={e => set('internship_type', e.target.value)} /> Paid
+                </label>
+              </div>
+              {form.internship_type === 'unpaid' && (
+                <div style={{ fontSize: 11, color: 'var(--slate)', marginTop: 4 }}>No internship fee — unpaid program.</div>
+              )}
+            </div>
+            {form.internship_type === 'paid' && (
+              <div className="form-group">
+                <label className="form-label">Internship Fee *</label>
+                <div className="radio-group" style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                    <input type="radio" name="stipend_amount" value="3000" checked={Number(form.stipend_amount) === 3000} onChange={e => set('stipend_amount', Number(e.target.value))} /> ₹3,000
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                    <input type="radio" name="stipend_amount" value="5000" checked={Number(form.stipend_amount) === 5000} onChange={e => set('stipend_amount', Number(e.target.value))} /> ₹5,000
+                  </label>
+                </div>
+              </div>
+            )}
+            {form.internship_type === 'paid' && (
+              <div className="form-group">
+                <label className="form-label">Payment Date</label>
+                <input className="form-control" type="date" value={form.payment_date || ''} onChange={e => set('payment_date', e.target.value)} />
+                <div style={{ fontSize: 11, color: 'var(--slate)', marginTop: 4 }}>Date the intern paid the fee.</div>
+              </div>
+            )}
           </div>
           <div className="form-row">
             <div className="form-group"><label className="form-label">Start date *</label><input className="form-control" type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} /></div>
@@ -291,10 +364,19 @@ export default function Internships() {
                 <option value="completed">Completed</option>
                 <option value="terminated">Terminated</option>
               </select>
+              <div style={{ fontSize: 11, color: 'var(--slate)', marginTop: 4 }}>Completed / Terminated will block login.</div>
             </div>
             <div className="form-group"><label className="form-label">Performance score (0-100)</label><input className="form-control" type="number" min="0" max="100" value={form.performance_score} onChange={e => set('performance_score', e.target.value)} /></div>
           </div>
         </Modal>
+      )}
+
+      {payslipIntern && (
+        <SendPayslipModal person={payslipIntern} type="intern" onClose={() => setPayslipIntern(null)} />
+      )}
+
+      {viewPayslips && (
+        <PayslipListModal person={viewPayslips} type="intern" onClose={() => setViewPayslips(null)} />
       )}
     </div>
   )

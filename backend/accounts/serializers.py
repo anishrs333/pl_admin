@@ -81,3 +81,9 @@ class MeSerializer(serializers.ModelSerializer):
             intern = obj.intern_profile
             return {'kind': 'intern', 'id': intern.id, 'code': intern.intern_id, 'status': intern.status}
         return None
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'role']

@@ -22,6 +22,20 @@ const hrNav = [
   ]},
 ]
 
+const hrExecutiveNav = [
+  { section: 'Console', items: [
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/employees', label: 'Employees', icon: Users },
+    { to: '/internships', label: 'Interns', icon: GraduationCap },
+    { to: '/candidates', label: 'Candidates', icon: UserSearch },
+  ]},
+  { section: 'Operations', items: [
+    { to: '/attendance', label: 'Attendance', icon: Clock },
+    { to: '/tasks', label: 'Tasks', icon: ClipboardList },
+    { to: '/colleges', label: 'Colleges', icon: Building2 },
+  ]},
+]
+
 const selfNav = [
   { section: 'My Workspace', items: [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -29,7 +43,7 @@ const selfNav = [
     { to: '/attendance', label: 'Attendance', icon: Clock },
     { to: '/wfh', label: 'Work From Home', icon: Home },
     { to: '/tasks', label: 'My Tasks', icon: ClipboardList },
-    { to: '/payroll', label: 'My Payslips', icon: DollarSign },
+    { to: '/my-payslips', label: 'My Payslips', icon: DollarSign },
   ]},
   { section: 'Account', items: [
     { to: '/security', label: 'Security', icon: KeyRound },
@@ -38,10 +52,13 @@ const selfNav = [
 
 export default function Sidebar({ isOpen, onClose, isCollapsed }) {
   const { user, logout } = useAuth()
-  const isHR = user?.role === 'hr'
+  const isHR = user?.role === 'hr' || user?.role === 'hr_executive'
+  const isFullHR = user?.role === 'hr'
   const initials = (user?.first_name?.[0] || user?.username?.[0] || 'U') + (user?.last_name?.[0] || '')
-  const nav = isHR ? hrNav : selfNav
+  const nav = isHR ? (isFullHR ? hrNav : hrExecutiveNav) : selfNav
   const code = user?.profile?.code
+
+  const roleLabel = isHR ? (isFullHR ? 'HR Administrator' : 'HR Executive') : user?.role
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
@@ -82,7 +99,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
         <div className="user-avatar" title={isCollapsed ? `${user?.first_name} ${user?.last_name}` : undefined}>{initials.toUpperCase()}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="user-name">{user?.first_name} {user?.last_name}</div>
-          <div className="user-role">{code || (isHR ? 'HR Administrator' : user?.role)}</div>
+          <div className="user-role">{code || roleLabel}</div>
         </div>
         <button onClick={logout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', padding: '4px' }} title="Sign out">
           <LogOut size={16} />
