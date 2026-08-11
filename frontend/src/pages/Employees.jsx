@@ -10,7 +10,6 @@ import IDBadge from '../components/IDBadge'
 import ResponsiveTable from '../components/ResponsiveTable'
 import MobileCard from '../components/MobileCard'
 import SendPayslipModal from '../components/SendPayslipModal'
-import PayslipListModal from '../components/PayslipListModal'
 import { useAuth } from '../context/AuthContext'
 
 const statusBadge = { active: 'badge-green', inactive: 'badge-gray', probation: 'badge-amber', on_leave: 'badge-indigo' }
@@ -46,7 +45,6 @@ export default function Employees() {
   const [picPreview, setPicPreview] = useState(null)
   const picRef = useRef(null)
   const [payslipEmp, setPayslipEmp] = useState(null)
-  const [viewPayslips, setViewPayslips] = useState(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['employees', search],
@@ -210,7 +208,6 @@ export default function Employees() {
                 <td>
                   <div className="action-btns">
                     {isFullHR && <button className="action-btn" title="Send Payslip" onClick={() => setPayslipEmp(emp)}><Send size={13} /></button>}
-                    <button className="action-btn" title="View Payslips" onClick={() => setViewPayslips(emp)}><FileText size={13} /></button>
                     <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /></button>
                     <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /></button>
@@ -233,7 +230,6 @@ export default function Employees() {
                 actions={
                   <>
                     {isFullHR && <button className="action-btn" onClick={() => setPayslipEmp(emp)}><Send size={13} /> Send Payslip</button>}
-                    <button className="action-btn" onClick={() => setViewPayslips(emp)}><FileText size={13} /> Payslips</button>
                     <button className="action-btn" title="Resend Welcome Email" onClick={() => { if (window.confirm('Resend welcome email?')) resendEmailMutation.mutate(emp.id) }}><Mail size={13} /> Resend Email</button>
                     <button className="action-btn" onClick={() => openEdit(emp)}><Edit2 size={13} /> Edit</button>
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /> Delete</button>
@@ -338,10 +334,6 @@ export default function Employees() {
 
       {payslipEmp && (
         <SendPayslipModal person={payslipEmp} type="employee" onClose={() => setPayslipEmp(null)} />
-      )}
-
-      {viewPayslips && (
-        <PayslipListModal person={viewPayslips} type="employee" onClose={() => setViewPayslips(null)} />
       )}
     </div>
   )

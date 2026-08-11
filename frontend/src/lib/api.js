@@ -1,13 +1,25 @@
 import axios from 'axios'
 
+let accessToken = null
+
+export const setAccessToken = (token) => {
+  accessToken = token
+}
+
+export const getAccessToken = () => {
+  return accessToken
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`
+  }
   return config
 })
 
@@ -17,19 +29,19 @@ api.interceptors.response.use(
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
-      const refresh = localStorage.getItem('refresh_token')
-      if (refresh) {
-        try {
-          const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh/`, { refresh })
-          localStorage.setItem('access_token', res.data.access)
-          original.headers.Authorization = `Bearer ${res.data.access}`
-          return api(original)
-        } catch {
-          localStorage.clear()
-          window.location.href = '/login'
-        }
-      } else {
-        localStorage.clear()
+      try {
+        // Cookies are sent automatically by the browser
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/auth/refresh/`,
+          {},
+          { withCredentials: true }
+        )
+        const newAccess = res.data.access
+        setAccessToken(newAccess)
+        original.headers.Authorization = `Bearer ${newAccess}`
+        return api(original)
+      } catch (err) {
+        setAccessToken(null)
         window.location.href = '/login'
       }
     }

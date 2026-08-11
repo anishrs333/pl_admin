@@ -6,6 +6,7 @@ table with alternating rows, bold net-pay banner, and professional
 footer with contact details.
 """
 import os
+import hashlib
 from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -246,7 +247,9 @@ def generate_payslip_pdf(salary):
     pf = float(salary.pf_deduction or 0)
     tax = float(salary.tax_deduction or 0)
     other_ded = float(salary.other_deductions or 0)
-    total_ded = pf + tax + other_ded
+    leave_ded = float(salary.leave_deduction or 0)
+    lop_days = float(salary.lop_days or 0)
+    total_ded = pf + tax + other_ded + leave_ded
     net = float(salary.net_salary) if salary.net_salary is not None else (gross - total_ded)
 
     earn_items = [('Basic Salary', basic), ('House Rent Allowance', hra),
@@ -255,6 +258,9 @@ def generate_payslip_pdf(salary):
 
     ded_items = [('Provident Fund', pf), ('Income Tax (TDS)', tax),
                  ('Other Deductions', other_ded)]
+    if leave_ded:
+        lop_label = f'Leave Deduction ({lop_days:.0f} LOP day{"s" if lop_days != 1 else ""})'
+        ded_items.insert(0, (lop_label, leave_ded))
 
     max_rows = max(len(earn_items), len(ded_items))
     while len(earn_items) < max_rows:
@@ -389,12 +395,21 @@ def generate_payslip_pdf(salary):
     payment_status_color = '#0D7C3D' if salary.status == 'paid' else '#E65100'
     payment_status_text = 'PAID' if salary.status == 'paid' else 'GENERATED'
 
+    # Verification hash — SHA-256 of key salary fields (first 12 hex chars)
+    _hash_input = (
+        f"{salary.id}|{salary.person_code}|{salary.month}|{salary.year}"
+        f"|{net:.2f}|{gross:.2f}|{total_ded:.2f}"
+    ).encode()
+    verify_hash = hashlib.sha256(_hash_input).hexdigest()[:12].upper()
+
+    generated_on = (
+        salary.created_at.strftime('%d %b %Y')
+        if hasattr(salary, 'created_at') and salary.created_at
+        else '—'
+    )
+
     summary_data = [
         [
-            Paragraph(
-                '<font size="7" color="#757575">PAYMENT MODE</font><br/>'
-                '<font size="8.5" color="#212121"><b>Bank Transfer</b></font>',
-                _s('pm', leading=12)),
             Paragraph(
                 '<font size="7" color="#757575">PAYMENT STATUS</font><br/>'
                 f'<font size="8.5" color="{payment_status_color}"><b>'
@@ -407,10 +422,12 @@ def generate_payslip_pdf(salary):
                 _s('pr', leading=12)),
             Paragraph(
                 '<font size="7" color="#757575">GENERATED ON</font><br/>'
-                f'<font size="8.5" color="#212121"><b>'
-                f'{salary.created_at.strftime("%d %b %Y") if hasattr(salary, "created_at") and salary.created_at else "—"}'
-                f'</b></font>',
+                f'<font size="8.5" color="#212121"><b>{generated_on}</b></font>',
                 _s('go', leading=12)),
+            Paragraph(
+                '<font size="7" color="#757575">VERIFICATION HASH</font><br/>'
+                f'<font size="7.5" color="#1B5E9E"><b>{verify_hash}</b></font>',
+                _s('vh', leading=12)),
         ]
     ]
     summary_tbl = Table(summary_data, colWidths=[uw / 4] * 4)

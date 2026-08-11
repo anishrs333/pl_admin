@@ -26,7 +26,7 @@ class InternViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Intern.objects.select_related('mentor')
         user = self.request.user
-        if user.is_hr or user.is_superuser:
+        if user.is_hr:
             return qs
         return qs.filter(user=user)
 
@@ -69,7 +69,10 @@ class InternViewSet(viewsets.ModelViewSet):
         pdf_buffer = generate_intern_receipt_pdf(intern)
         response = HttpResponse(pdf_buffer, content_type='application/pdf')
         filename = f'receipt_{intern.intern_id}.pdf'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        if request.query_params.get('inline') == '1':
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+        else:
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
 
@@ -88,7 +91,7 @@ class InternTaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = InternTask.objects.select_related('intern')
         user = self.request.user
-        if user.is_hr or user.is_superuser:
+        if user.is_hr:
             return qs
         if hasattr(user, 'intern_profile'):
             return qs.filter(intern=user.intern_profile)

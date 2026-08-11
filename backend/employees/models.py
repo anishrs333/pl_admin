@@ -39,7 +39,7 @@ class Employee(models.Model):
     designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, related_name='employees')
 
     joining_date = models.DateField()
-    salary = models.DecimalField(max_digits=10, decimal_places=2)
+    salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     address = models.TextField(blank=True)
     emergency_contact_name = models.CharField(max_length=100, blank=True)

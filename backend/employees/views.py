@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from accounts.permissions import IsHR, IsHRorSelfReadOnly
 from .models import Employee, Department, Designation
-from .serializers import EmployeeSerializer, DepartmentSerializer, DesignationSerializer
+from .serializers import EmployeeSerializer, EmployeeListSerializer, DepartmentSerializer, DesignationSerializer
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):
@@ -33,6 +33,11 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     search_fields = ['full_name', 'email', 'employee_id']
     ordering = ['-created_at']
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return EmployeeListSerializer
+        return EmployeeSerializer
+
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsHR()]
@@ -41,7 +46,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Employee.objects.select_related('department', 'designation')
         user = self.request.user
-        if user.is_hr or user.is_superuser:
+        if user.is_hr:
             return qs
         return qs.filter(user=user)
 

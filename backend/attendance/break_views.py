@@ -28,7 +28,7 @@ class BreakRequestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = BreakRequest.objects.select_related('employee', 'intern', 'reviewer').all()
         user = self.request.user
-        if user.is_hr or user.is_superuser:
+        if user.is_hr:
             qs_all = qs
         else:
             kind, profile = _get_self_target(user)
@@ -46,7 +46,7 @@ class BreakRequestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        if not (user.is_hr or user.is_superuser):
+        if not user.is_hr:
             kind, profile = _get_self_target(user)
             if kind == 'employee':
                 serializer.save(employee=profile)

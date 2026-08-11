@@ -39,6 +39,19 @@ class EmployeeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['employee_id', 'created_at', 'updated_at']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.user:
+            user = request.user
+            is_self = False
+            instance = getattr(self, 'instance', None)
+            if instance and hasattr(instance, 'user_id') and instance.user_id == user.id:
+                is_self = True
+            
+            if not (user.is_full_hr or is_self):
+                self.fields.pop('salary', None)
+
     def get_profile_picture_url(self, obj):
         request = self.context.get('request')
         if obj.profile_picture and request:

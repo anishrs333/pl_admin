@@ -13,9 +13,33 @@ class LoginView(TokenObtainPairView):
     """
     POST /api/auth/login/  { username, password }
     `username` accepts: HR username, Employee ID (PL-EMP-...), or Intern ID (PL-INT-...)
-    Returns access/refresh tokens + role + linked profile in one round trip.
+    Returns access token + role + linked profile, and sets refresh token in httpOnly cookie.
     """
     serializer_class = LoginSerializer
+    throttle_scope = 'login'
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as e:
+            raise InvalidToken(e.args[0])
+
+        data = serializer.validated_data
+        refresh = data.pop('refresh')
+        response = Response(data, status=status.HTTP_200_OK)
+
+        # Set httponly cookie for refresh token
+        from django.conf import settings
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh,
+            httponly=True,
+            secure=not settings.DEBUG,
+            samesite='Lax',
+            max_age=7 * 24 * 60 * 60,  # 7 days
+        )
+        return response
 
 
 class MeView(generics.RetrieveAPIView):
@@ -55,8 +79,59 @@ class VerifyIDView(APIView):
 
     def post(self, request):
         username = request.data.get('username', '').strip()
-        exists = User.objects.filter(username__iexact=username, is_active=True).exists()
-        if not exists:
+        try:
+            user = User.objects.get(username__iexact=username, is_active=True)
+            return Response({'valid': True, 'role': user.role})
+        except User.DoesNotExist:
             return Response({'valid': False, 'message': 'No account found for this ID.'}, status=status.HTTP_404_NOT_FOUND)
-        user = User.objects.get(username__iexact=username)
-        return Response({'valid': True, 'role': user.role})
+
+
+class CookieTokenRefreshView(APIView):
+    """
+    POST /api/auth/refresh/
+    Reads the refresh token from httpOnly cookie and re-issues a new access token.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token not found in cookies.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Inject refresh token into serializer validation context
+        data = {'refresh': refresh_token}
+        serializer = TokenRefreshSerializer(data=data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as e:
+            raise InvalidToken(e.args[0])
+
+        validated_data = serializer.validated_data
+        new_refresh = validated_data.pop('refresh', None)
+
+        response = Response(validated_data, status=status.HTTP_200_OK)
+        if new_refresh:
+            from django.conf import settings
+            response.set_cookie(
+                key='refresh_token',
+                value=new_refresh,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                max_age=7 * 24 * 60 * 60,
+            )
+        return response
+
+
+class LogoutView(APIView):
+    """
+    POST /api/auth/logout/
+    Clears the refresh token cookie.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        response = Response({'detail': 'Logged out successfully.'}, status=status.HTTP_200_OK)
+        response.delete_cookie('refresh_token')
+        return response

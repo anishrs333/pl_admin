@@ -4,14 +4,13 @@ import { Plus, Search, Edit2, Trash2, Camera, GraduationCap, Loader2, Mail, File
 import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
-import api from '../lib/api'
+import api, { getAccessToken } from '../lib/api'
 import Modal from '../components/Modal'
 import IDBadge from '../components/IDBadge'
 import ResponsiveTable from '../components/ResponsiveTable'
 import MobileCard from '../components/MobileCard'
 import { useAuth } from '../context/AuthContext'
 import SendPayslipModal from '../components/SendPayslipModal'
-import PayslipListModal from '../components/PayslipListModal'
 
 const statusBadge = { active: 'badge-green', completed: 'badge-gray', terminated: 'badge-red' }
 const emptyForm = { name: '', email: '', mobile: '', college_name: '', domain: '', description: '', mentor: '', start_date: '', end_date: '', status: 'active', performance_score: '', certificate_issued: false, internship_type: 'unpaid', stipend_amount: '', payment_date: '' }
@@ -43,7 +42,6 @@ export default function Internships() {
   const [picPreview, setPicPreview] = useState(null)
   const picRef = useRef(null)
   const [payslipIntern, setPayslipIntern] = useState(null)
-  const [viewPayslips, setViewPayslips] = useState(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['internships', search],
@@ -105,6 +103,14 @@ export default function Internships() {
   })
 
   const downloadReceipt = async (internId, internId_code) => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    if (isMobile) {
+      const token = getAccessToken()
+      const url = `${import.meta.env.VITE_API_URL}/internships/${internId}/receipt-pdf/?inline=1&token=${token}`
+      window.open(url, '_blank')
+      return
+    }
+
     try {
       const res = await api.get(`/internships/${internId}/receipt-pdf/`, { responseType: 'blob' })
       const url = URL.createObjectURL(res.data)
@@ -221,7 +227,6 @@ export default function Internships() {
                 <td>
                   <div className="action-btns">
                     {isFullHR && <button className="action-btn" title="Send Payslip" onClick={() => setPayslipIntern(intern)}><Send size={13} /></button>}
-                    <button className="action-btn" title="View Payslips" onClick={() => setViewPayslips(intern)}><FileText size={13} /></button>
                     {isFullHR && intern.internship_type === 'paid' && (
                       <button className="action-btn" title="Download Payment Receipt" onClick={() => downloadReceipt(intern.id, intern.intern_id)}><FileText size={13} /> Receipt</button>
                     )}
@@ -248,7 +253,6 @@ export default function Internships() {
                 actions={
                   <>
                     {isFullHR && <button className="action-btn" onClick={() => setPayslipIntern(intern)}><Send size={13} /> Send Payslip</button>}
-                    <button className="action-btn" onClick={() => setViewPayslips(intern)}><FileText size={13} /> Payslips</button>
                     {isFullHR && intern.internship_type === 'paid' && (
                       <button className="action-btn" onClick={() => downloadReceipt(intern.id, intern.intern_id)}><FileText size={13} /> Receipt</button>
                     )}
@@ -373,10 +377,6 @@ export default function Internships() {
 
       {payslipIntern && (
         <SendPayslipModal person={payslipIntern} type="intern" onClose={() => setPayslipIntern(null)} />
-      )}
-
-      {viewPayslips && (
-        <PayslipListModal person={viewPayslips} type="intern" onClose={() => setViewPayslips(null)} />
       )}
     </div>
   )

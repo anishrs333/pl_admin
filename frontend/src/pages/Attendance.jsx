@@ -5,7 +5,7 @@ import { Clock, CheckCircle, XCircle, Search, Plus, CalendarDays, FileText, Chev
 import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import toast from 'react-hot-toast'
-import api from '../lib/api'
+import api, { getAccessToken } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
 import ResponsiveTable from '../components/ResponsiveTable'
@@ -458,9 +458,17 @@ export default function Attendance() {
 
   // Export PDF handler
   const exportPDF = async () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const type = (dateRange === 'this_week' || dateRange === 'last_week') ? 'weekly' : 'monthly'
+    if (isMobile) {
+      const token = getAccessToken()
+      const url = `${import.meta.env.VITE_API_URL}/attendance/report_pdf/?start_date=${queryStart}&end_date=${queryEnd}&type=${type}&inline=1&token=${token}`
+      window.open(url, '_blank')
+      return
+    }
+
     setDownloading(true)
     try {
-      const type = (dateRange === 'this_week' || dateRange === 'last_week') ? 'weekly' : 'monthly'
       const response = await api.get('/attendance/report_pdf/', {
         params: { start_date: queryStart, end_date: queryEnd, type },
         responseType: 'blob'

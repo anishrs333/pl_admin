@@ -1,5 +1,12 @@
 # Changelog - PL Soft Tech HR Console v3
 
+## 📅 Updates - August 11, 2026
+
+### 🔍 Payroll Filtering & Input UX Enhancements
+- ✅ **Payroll Multi-Filter Toolbar**: Added Search, Month (Jan-Dec), Year, Status (Paid/Pending), and Type (Employees/Interns) filters with a one-click Reset option.
+- ✅ **Normal Text Inputs in Payslips**: Converted all numeric input fields in `SendPayslipModal` and `Payroll` from `type="number"` to `type="text"` to eliminate browser spinner arrows.
+- ✅ **Action Buttons Cleanup**: Removed the "View Payslips" (`FileText`) button and associated modal from Employees and Internships table actions, retaining the "Send Payslip" (`Send`) button.
+
 ## Version 3.0 - Complete Overhaul
 
 ### Major Features Added

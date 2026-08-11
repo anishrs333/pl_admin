@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import api from '../lib/api'
+import axios from 'axios'
+import api, { setAccessToken } from '../lib/api'
 
 const AuthContext = createContext(null)
 
@@ -8,25 +9,37 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (!token) { setLoading(false); return }
-    api.get('/auth/me/')
+    // Attempt to restore session using refresh token cookie on mount
+    axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh/`, {}, { withCredentials: true })
+      .then(res => {
+        const token = res.data.access
+        setAccessToken(token)
+        return api.get('/auth/me/')
+      })
       .then(r => setUser(r.data))
-      .catch(() => localStorage.clear())
+      .catch(() => {
+        setAccessToken(null)
+        setUser(null)
+      })
       .finally(() => setLoading(false))
   }, [])
 
   const login = async (username, password) => {
     const res = await api.post('/auth/login/', { username, password })
-    localStorage.setItem('access_token', res.data.access)
-    localStorage.setItem('refresh_token', res.data.refresh)
+    const token = res.data.access
+    setAccessToken(token)
     const meRes = await api.get('/auth/me/')
     setUser(meRes.data)
     return { ...res.data, ...meRes.data }
   }
 
-  const logout = () => {
-    localStorage.clear()
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout/')
+    } catch (e) {
+      console.error('Logout failed', e)
+    }
+    setAccessToken(null)
     setUser(null)
   }
 

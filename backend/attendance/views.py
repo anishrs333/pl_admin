@@ -34,7 +34,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Attendance.objects.select_related('employee', 'intern')
         user = self.request.user
-        if user.is_hr or user.is_superuser:
+        if user.is_hr:
             return qs
         kind, profile = _get_self_target(user)
         if kind == 'employee':
@@ -107,7 +107,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             qs = Attendance.objects.filter(date=today).select_related('employee', 'intern')
 
         user = request.user
-        if not (user.is_hr or user.is_superuser):
+        if not user.is_hr:
             kind, profile = _get_self_target(user)
             qs = qs.filter(employee=profile) if kind == 'employee' else qs.filter(intern=profile)
         serializer = AttendanceSerializer(qs, many=True, context={'request': request})
@@ -143,7 +143,10 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
         filename = f'Attendance_{report_type}_{start_str}_to_{end_str}.pdf'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        if request.query_params.get('inline') == '1':
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+        else:
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
     @action(detail=False, methods=['get'])
@@ -249,7 +252,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Leave.objects.select_related('employee', 'intern', 'reviewer')
         user = self.request.user
-        if user.is_hr or user.is_superuser:
+        if user.is_hr:
             qs_all = qs
         elif hasattr(user, 'employee_profile'):
             qs_all = qs.filter(employee=user.employee_profile)

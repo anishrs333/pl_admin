@@ -27,7 +27,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Task.objects.select_related('assigned_to', 'assigned_to_intern', 'assigned_to_user')
         user = self.request.user
-        if user.is_hr or user.is_superuser:
+        if user.is_hr:
             qs_all = qs
         elif hasattr(user, 'employee_profile'):
             qs_all = qs.filter(assigned_to__user=user)
@@ -80,12 +80,12 @@ class TaskViewSet(viewsets.ModelViewSet):
             (task.assigned_to_user_id == user.id)
         )
 
-        if not (user.is_hr or user.is_superuser or is_owner):
+        if not (user.is_hr or is_owner):
             return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
 
         task.status = 'completed'
         task.completed_at = timezone.now()
         task.save()
-        if not (user.is_hr or user.is_superuser):
+        if not user.is_hr:
             notify_task_completed(task)
         return Response(TaskSerializer(task).data)

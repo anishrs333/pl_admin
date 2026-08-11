@@ -9,6 +9,20 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-pl-softtech-ch
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# Production safety check
+is_local_dev = all(h.strip() in ('localhost', '127.0.0.1', '[::1]', 'localhost:8000') for h in ALLOWED_HOSTS)
+if not is_local_dev:
+    if 'DJANGO_SECRET_KEY' not in os.environ:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY environment variable is required outside local development.")
+    if 'DJANGO_DEBUG' not in os.environ or os.environ.get('DJANGO_DEBUG').lower() not in ('false', '0', 'no'):
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("DJANGO_DEBUG must be explicitly set to False outside local development.")
+
+if not DEBUG and SECRET_KEY == 'django-insecure-pl-softtech-change-in-production-2026':
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("The default insecure SECRET_KEY cannot be used when DEBUG is False.")
 CORS_ALLOWED_ORIGINS_RAW = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')
 CSRF_TRUSTED_ORIGINS_RAW = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 
@@ -90,11 +104,24 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'accounts.authentication.QueryParamJWTAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/minute',
+        'user': '1000/hour',
+        'login': '5/minute',
+    }
 }
 
 SIMPLE_JWT = {

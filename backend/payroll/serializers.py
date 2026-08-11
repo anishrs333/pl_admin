@@ -12,7 +12,7 @@ class SalarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Salary
         fields = '__all__'
-        read_only_fields = ['net_salary']
+        read_only_fields = ['net_salary', 'created_at']
 
     def get_employee_name(self, obj):
         return obj.person_name
