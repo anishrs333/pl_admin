@@ -31,6 +31,7 @@ const hrExecutiveNav = [
   ]},
   { section: 'Operations', items: [
     { to: '/attendance', label: 'Attendance', icon: Clock },
+    { to: '/wfh', label: 'Work From Home', icon: Home },
     { to: '/tasks', label: 'Tasks', icon: ClipboardList },
     { to: '/colleges', label: 'Colleges', icon: Building2 },
   ]},

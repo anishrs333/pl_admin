@@ -35,7 +35,7 @@ export default function Layout({ children }) {
             </button>
           )}
           <div style={{ flex: 1 }} />
-          <NotificationBell />
+          {!isMobile && <NotificationBell />}
           <div className="top-header-user">
             <span>{user?.first_name} {user?.last_name}</span>
             <div className="user-avatar-sm">{initials}</div>
@@ -46,7 +46,7 @@ export default function Layout({ children }) {
         <div className="mobile-header">
           <div className="mobile-brand">PL Soft Tech</div>
           <div className="mobile-header-actions">
-            <NotificationBell />
+            {isMobile && <NotificationBell />}
           </div>
         </div>
         

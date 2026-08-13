@@ -2,7 +2,7 @@ from rest_framework import viewsets, filters, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from accounts.permissions import IsFullHR, IsHRorSelfReadOnly
+from accounts.permissions import IsHR, IsHRorSelfReadOnly
 from .models import WorkFromHome
 from .wfh_serializers import WorkFromHomeSerializer
 from .views import _get_self_target
@@ -19,7 +19,7 @@ class WorkFromHomeViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return [IsHRorSelfReadOnly()]
         elif self.action in ['approve', 'reject']:
-            return [IsFullHR()]
+            return [IsHR()]
         else:
             return [IsHRorSelfReadOnly()]
 
@@ -38,17 +38,15 @@ class WorkFromHomeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        if not user.is_hr:
-            kind, profile = _get_self_target(user)
-            if kind == 'employee':
-                serializer.save(employee=profile)
-            elif kind == 'intern':
-                serializer.save(intern=profile)
-            else:
-                raise serializers.ValidationError('No employee/intern profile found.')
+        if user.is_hr:
+            raise serializers.ValidationError('HR users cannot apply for work from home.')
+        kind, profile = _get_self_target(user)
+        if kind == 'employee':
+            serializer.save(employee=profile)
+        elif kind == 'intern':
+            serializer.save(intern=profile)
         else:
-            # HR creating on behalf of someone
-            serializer.save()
+            raise serializers.ValidationError('No employee/intern profile found.')
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
