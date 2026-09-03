@@ -86,7 +86,7 @@ def notify_salary_generated(salary):
     person = salary.employee or salary.intern
     user = getattr(person, 'user', None)
     if user:
-        month_name = MONTHS[salary.month] if hasattr(MONTHS, '__getitem__') else str(salary.month)
+        month_name = MONTHS[salary.month] if (isinstance(salary.month, int) and 1 <= salary.month < len(MONTHS)) else str(salary.month)
         notify(
             recipient=user,
             notification_type='salary_generated',

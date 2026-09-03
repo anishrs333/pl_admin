@@ -79,11 +79,10 @@ class VerifyIDView(APIView):
 
     def post(self, request):
         username = request.data.get('username', '').strip()
-        try:
-            user = User.objects.get(username__iexact=username, is_active=True)
-            return Response({'valid': True, 'role': user.role})
-        except User.DoesNotExist:
+        user = User.objects.filter(username__iexact=username, is_active=True).first()
+        if not user:
             return Response({'valid': False, 'message': 'No account found for this ID.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'valid': True, 'role': user.role})
 
 
 class CookieTokenRefreshView(APIView):

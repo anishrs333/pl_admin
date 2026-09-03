@@ -43,13 +43,14 @@ class CandidateViewSet(viewsets.ModelViewSet):
         # Send notification
         try:
             from notifications.utils import notify
+            recipient = candidate.interviewed_by.user if (candidate.interviewed_by and candidate.interviewed_by.user) else request.user
             notify(
-                recipient=candidate,
+                recipient=recipient,
                 notification_type='interview_scheduled',
                 title='Interview Scheduled',
-                message=f'Your interview is scheduled for {candidate.interview_scheduled_date} at {candidate.interview_scheduled_time}'
+                message=f'Interview scheduled for {candidate.full_name} on {candidate.interview_scheduled_date} at {candidate.interview_scheduled_time}'
             )
-        except:
+        except Exception:
             pass
         
         return Response(CandidateSerializer(candidate, context=self.get_serializer_context()).data)

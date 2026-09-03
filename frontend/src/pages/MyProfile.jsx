@@ -6,25 +6,20 @@ import IDBadge from '../components/IDBadge'
 
 export default function MyProfile() {
   const { user } = useAuth()
+  const isHR = user?.role === 'hr'
   const isEmployee = user?.profile?.kind === 'employee'
+  const isIntern = user?.profile?.kind === 'intern'
 
-  const { data: employees } = useQuery({
+  const { data: employees, isLoading: empLoading } = useQuery({
     queryKey: ['my-employee'],
     queryFn: () => api.get('/employees/').then(r => r.data),
     enabled: isEmployee
   })
-  const { data: interns } = useQuery({
+  const { data: interns, isLoading: intLoading } = useQuery({
     queryKey: ['my-intern'],
     queryFn: () => api.get('/internships/').then(r => r.data),
-    enabled: !isEmployee
+    enabled: isIntern
   })
-
-  const profile = isEmployee ? (employees?.results || employees || [])[0] : (interns?.results || interns || [])[0]
-  if (!profile) return <div className="loading-center"><div className="spinner" /></div>
-
-  const displayName = isEmployee ? profile.full_name : profile.name
-  const initials = displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-  const picUrl = profile.profile_picture_url
 
   const Row = ({ icon: Icon, label, value, bg = 'var(--indigo-50)', color = 'var(--indigo)' }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -37,6 +32,72 @@ export default function MyProfile() {
       </div>
     </div>
   )
+
+  if (isHR && !isEmployee && !isIntern) {
+    const displayName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.username || 'HR Admin'
+    const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+
+    return (
+      <div>
+        <div className="page-header">
+          <div><h2 className="page-header-title">My Profile</h2><p className="page-header-sub">Administrator Account</p></div>
+        </div>
+
+        <div className="card" style={{ background: 'var(--indigo-deep)', border: 'none', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, color: '#fff', flexWrap: 'wrap' }}>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
+              {initials}
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 600 }}>{displayName}</div>
+              <div style={{ fontSize: 13, opacity: 0.8, marginTop: 2 }}>HR Administrator</div>
+            </div>
+            <div className="id-badge" style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.25)' }}>
+              <span className="id-badge-label" style={{ color: 'rgba(255,255,255,0.6)' }}>ROLE</span>
+              <span className="id-badge-code" style={{ color: '#fff' }}>HR ADMIN</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid-2">
+          <div className="card">
+            <div className="card-header"><span className="card-title">Account details</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Row icon={User} label="Username" value={user?.username} />
+              <Row icon={Mail} label="Email" value={user?.email} />
+              <Row icon={Phone} label="Phone" value={user?.phone} bg="var(--green-50)" color="#047857" />
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header"><span className="card-title">Permissions & status</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Row icon={Shield} label="Access Level" value="Full System Administration" bg="var(--amber-50)" color="#B45309" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Shield size={16} style={{ color: '#047857' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--slate)' }}>Status</div>
+                  <span className="badge badge-green" style={{ marginTop: 2 }}>Active</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if ((isEmployee && empLoading) || (isIntern && intLoading)) {
+    return <div className="loading-center"><div className="spinner" /></div>
+  }
+
+  const profile = isEmployee ? (employees?.results || employees || [])[0] : (interns?.results || interns || [])[0]
+  if (!profile) return <div className="loading-center"><div className="spinner" /></div>
+
+  const displayName = isEmployee ? profile.full_name : profile.name
+  const initials = displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  const picUrl = profile.profile_picture_url
 
   return (
     <div>

@@ -326,7 +326,7 @@ export default function Employees() {
           </div>
           {!editId && (
             <div style={{ background: 'var(--indigo-50)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--indigo-deep)' }}>
-              ID <strong>PL-EMP-{form.joining_date ? form.joining_date.slice(0, 4) : 'YYYY'}-NNNN</strong> and login are auto-generated on save.
+              ID <strong>EMP-PL-001</strong> and user login are auto-generated on save.
             </div>
           )}
         </Modal>

@@ -55,7 +55,7 @@ class LeaveSerializer(serializers.ModelSerializer):
             'status', 'status_display',
             'created_at', 'reviewed_at', 'reviewer_notes',
         ]
-        read_only_fields = ['created_at', 'reviewed_at', 'employee', 'intern']
+        read_only_fields = ['created_at', 'reviewed_at']
 
     def get_employee_name(self, obj):
         return obj.person_name

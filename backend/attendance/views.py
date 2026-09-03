@@ -45,10 +45,32 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def checkin(self, request):
-        """Employee/Intern self check-in."""
-        kind, profile = _get_self_target(request.user)
-        if not kind:
-            return Response({'error': 'No employee/intern profile'}, status=status.HTTP_400_BAD_REQUEST)
+        """Employee/Intern check-in."""
+        user = request.user
+        emp_id = request.data.get('employee') or request.data.get('employee_id')
+        intern_id = request.data.get('intern') or request.data.get('intern_id')
+
+        kind, profile = None, None
+        if (user.role == 'hr' or user.is_superuser) and (emp_id or intern_id):
+            if emp_id:
+                from employees.models import Employee
+                try:
+                    profile = Employee.objects.get(pk=emp_id) if str(emp_id).isdigit() else Employee.objects.get(employee_id=emp_id)
+                    kind = 'employee'
+                except Employee.DoesNotExist:
+                    return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+            elif intern_id:
+                from internships.models import Intern
+                try:
+                    profile = Intern.objects.get(pk=intern_id) if str(intern_id).isdigit() else Intern.objects.get(intern_id=intern_id)
+                    kind = 'intern'
+                except Intern.DoesNotExist:
+                    return Response({'error': 'Intern not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            kind, profile = _get_self_target(user)
+
+        if not kind or not profile:
+            return Response({'error': 'No employee/intern profile found'}, status=status.HTTP_400_BAD_REQUEST)
 
         today = timezone.now().date()
         lookup = {'employee': profile, 'date': today} if kind == 'employee' else {'intern': profile, 'date': today}
@@ -65,10 +87,32 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def checkout(self, request):
-        """Employee/Intern self check-out."""
-        kind, profile = _get_self_target(request.user)
-        if not kind:
-            return Response({'error': 'No employee/intern profile'}, status=status.HTTP_400_BAD_REQUEST)
+        """Employee/Intern check-out."""
+        user = request.user
+        emp_id = request.data.get('employee') or request.data.get('employee_id')
+        intern_id = request.data.get('intern') or request.data.get('intern_id')
+
+        kind, profile = None, None
+        if (user.role == 'hr' or user.is_superuser) and (emp_id or intern_id):
+            if emp_id:
+                from employees.models import Employee
+                try:
+                    profile = Employee.objects.get(pk=emp_id) if str(emp_id).isdigit() else Employee.objects.get(employee_id=emp_id)
+                    kind = 'employee'
+                except Employee.DoesNotExist:
+                    return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+            elif intern_id:
+                from internships.models import Intern
+                try:
+                    profile = Intern.objects.get(pk=intern_id) if str(intern_id).isdigit() else Intern.objects.get(intern_id=intern_id)
+                    kind = 'intern'
+                except Intern.DoesNotExist:
+                    return Response({'error': 'Intern not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            kind, profile = _get_self_target(user)
+
+        if not kind or not profile:
+            return Response({'error': 'No employee/intern profile found'}, status=status.HTTP_400_BAD_REQUEST)
 
         today = timezone.now().date()
         lookup = {'employee': profile, 'date': today} if kind == 'employee' else {'intern': profile, 'date': today}
@@ -234,11 +278,11 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
 
 class LeaveViewSet(viewsets.ModelViewSet):
-    """Leave management (Employees)."""
+    """Leave management (Employees & Interns)."""
     serializer_class = LeaveSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status']
-    search_fields = ['employee__full_name', 'reason']
+    search_fields = ['employee__full_name', 'intern__name', 'reason']
     ordering = ['-created_at']
 
     def get_permissions(self):
@@ -269,12 +313,24 @@ class LeaveViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         from notifications.utils import notify_leave_applied
         user = self.request.user
-        if hasattr(user, 'employee_profile'):
-            leave = serializer.save(employee=user.employee_profile)
-        elif hasattr(user, 'intern_profile'):
-            leave = serializer.save(intern=user.intern_profile)
+        if not (user.role == 'hr' or user.is_superuser):
+            if hasattr(user, 'employee_profile'):
+                leave = serializer.save(employee=user.employee_profile)
+            elif hasattr(user, 'intern_profile'):
+                leave = serializer.save(intern=user.intern_profile)
+            else:
+                raise serializers.ValidationError('Only employees and interns can apply for leave.')
         else:
-            raise serializers.ValidationError('Only employees and interns can apply for leave.')
+            emp = serializer.validated_data.get('employee')
+            intern = serializer.validated_data.get('intern')
+            if not emp and not intern:
+                if hasattr(user, 'employee_profile'):
+                    emp = user.employee_profile
+                elif hasattr(user, 'intern_profile'):
+                    intern = user.intern_profile
+            if not emp and not intern:
+                raise serializers.ValidationError('Please specify an employee or intern for this leave.')
+            leave = serializer.save(employee=emp, intern=intern)
         notify_leave_applied(leave)
 
     @action(detail=True, methods=['post'])

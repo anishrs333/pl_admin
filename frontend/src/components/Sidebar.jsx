@@ -18,6 +18,7 @@ const hrNav = [
     { to: '/clients', label: 'Clients', icon: Briefcase },
   ]},
   { section: 'Account', items: [
+    { to: '/profile', label: 'My Profile', icon: UserIcon },
     { to: '/security', label: 'Security', icon: KeyRound },
   ]},
 ]

@@ -20,4 +20,4 @@ class BreakRequestSerializer(serializers.ModelSerializer):
             'reviewer', 'reviewer_name', 'reviewed_at', 'reviewer_notes',
             'created_at',
         ]
-        read_only_fields = ['reviewed_at', 'created_at', 'reviewer', 'employee', 'intern', 'status']
+        read_only_fields = ['reviewed_at', 'created_at', 'reviewer', 'status']
