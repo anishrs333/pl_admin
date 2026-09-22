@@ -209,7 +209,7 @@ export default function Internships() {
         {isLoading ? <Loading /> : (
           interns.length === 0 ? <EmptyState icon={GraduationCap} title="No interns yet" description="Add your first intern to get started." /> :
           <ResponsiveTable
-            headers={['Intern', 'ID', 'College', 'Domain', 'Type', 'Status', 'Actions']}
+            headers={['Intern', 'ID', 'Mobile', 'College', 'Domain', 'Type', 'Stipend (₹)', 'Mentor', 'Duration', 'Status', 'Actions']}
             data={interns}
             renderRow={(intern) => (
               <tr key={intern.id}>
@@ -220,9 +220,13 @@ export default function Internships() {
                   </div>
                 </td>
                 <td><IDBadge code={intern.intern_id} label="INT" size="sm" /></td>
+                <td style={{ fontSize: 13 }}>{intern.mobile || '—'}</td>
                 <td style={{ fontSize: 13 }}>{intern.college_name || '—'}</td>
                 <td style={{ fontSize: 13 }}>{intern.domain || '—'}</td>
                 <td><span className={`badge ${intern.internship_type === 'paid' ? 'badge-indigo' : 'badge-gray'}`}>{intern.internship_type === 'paid' ? 'Paid' : 'Non-Paid'}</span></td>
+                <td style={{ fontSize: 13, fontFamily: 'var(--font-mono)' }}>{intern.stipend_amount ? `₹${Number(intern.stipend_amount).toLocaleString('en-IN')}` : '—'}</td>
+                <td style={{ fontSize: 13 }}>{intern.mentor_name || '—'}</td>
+                <td style={{ fontSize: 12 }}>{intern.start_date ? `${intern.start_date} → ${intern.end_date || 'Present'}` : '—'}</td>
                 <td><span className={`badge ${statusBadge[intern.status] || 'badge-gray'}`}>{intern.status}</span></td>
                 <td>
                   <div className="action-btns">
@@ -261,7 +265,16 @@ export default function Internships() {
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove intern?')) deleteMutation.mutate(intern.id) }}><Trash2 size={13} /> Delete</button>
                   </>
                 }
-              />
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12, padding: 10, background: 'var(--paper)', borderRadius: 8, fontSize: 12 }}>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Mobile</span><strong>{intern.mobile || '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>College</span><strong>{intern.college_name || '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Domain</span><strong>{intern.domain || '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Mentor</span><strong>{intern.mentor_name || '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Stipend</span><strong>{intern.stipend_amount ? `₹${Number(intern.stipend_amount).toLocaleString('en-IN')}` : '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Duration</span><strong>{intern.start_date ? `${intern.start_date} → ${intern.end_date || 'Present'}` : '—'}</strong></div>
+                </div>
+              </MobileCard>
             )}
           />
         )}

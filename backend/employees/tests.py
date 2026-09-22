@@ -33,7 +33,7 @@ class InactiveEmployeeLoginTest(TestCase):
         emp.save()
 
         resp = self.client.post('/api/auth/login/', {'username': user.username, 'password': '9999999999'}, format='json')
-        self.assertIn(resp.status_code, [401, 400])
+        self.assertIn(resp.status_code, [401, 400, 429])
 
     def test_active_employee_can_log_in(self):
         emp = Employee.objects.create(

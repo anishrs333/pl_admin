@@ -224,7 +224,7 @@ export default function Payroll() {
         {isLoading ? <Loading /> : (
           salaries.length === 0 ? <EmptyState icon={DollarSign} title="No salary records" description="No payroll data to display." /> :
           <ResponsiveTable
-            headers={isHR ? ['Employee / Intern', 'Period', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Actions'] : ['Period', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Actions']}
+            headers={isHR ? ['Employee / Intern', 'Period', 'Basic (₹)', 'Gross (₹)', 'Deductions (₹)', 'Net Pay (₹)', 'Status', 'Actions'] : ['Period', 'Basic (₹)', 'Gross (₹)', 'Deductions (₹)', 'Net Pay (₹)', 'Status', 'Actions']}
             data={salaries}
             renderRow={(s) => (
               <tr key={s.id}>
@@ -235,6 +235,7 @@ export default function Payroll() {
                   </td>
                 )}
                 <td><span className="badge badge-indigo">{MONTHS[s.month]} {s.year}</span></td>
+                <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>₹{Number(s.basic_salary || 0).toLocaleString('en-IN')}</td>
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>₹{Number(s.gross || 0).toLocaleString('en-IN')}</td>
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--red)' }}>₹{Number(s.total_deductions || 0).toLocaleString('en-IN')}</td>
                 <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, color: '#1F7A45' }}>₹{Number(s.net_salary || 0).toLocaleString('en-IN')}</td>

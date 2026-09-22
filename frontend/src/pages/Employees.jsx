@@ -191,7 +191,7 @@ export default function Employees() {
         {isLoading ? <Loading /> : (
           employees.length === 0 ? <EmptyState icon={Users} title="No employees yet" description="Add your first employee to get started." /> :
           <ResponsiveTable
-            headers={['Employee', 'ID', 'Department', 'Designation', 'Status', 'Actions']}
+            headers={['Employee', 'ID', 'Mobile', 'Department', 'Designation', 'Joining Date', 'Salary (₹)', 'Status', 'Actions']}
             data={employees}
             renderRow={(emp) => (
               <tr key={emp.id}>
@@ -202,8 +202,11 @@ export default function Employees() {
                   </div>
                 </td>
                 <td><IDBadge code={emp.employee_id} label="EMP" size="sm" /></td>
+                <td style={{ fontSize: 13 }}>{emp.mobile || '—'}</td>
                 <td style={{ fontSize: 13 }}>{emp.department_name || '—'}</td>
                 <td style={{ fontSize: 13 }}>{emp.designation_name || '—'}</td>
+                <td style={{ fontSize: 13 }}>{emp.joining_date || '—'}</td>
+                <td style={{ fontSize: 13, fontFamily: 'var(--font-mono)' }}>{emp.salary ? `₹${Number(emp.salary).toLocaleString('en-IN')}` : '—'}</td>
                 <td><span className={`badge ${statusBadge[emp.status] || 'badge-gray'}`}>{emp.status.replace('_', ' ')}</span></td>
                 <td>
                   <div className="action-btns">
@@ -235,7 +238,15 @@ export default function Employees() {
                     <button className="action-btn" onClick={() => { if (window.confirm('Remove employee?')) deleteMutation.mutate(emp.id) }}><Trash2 size={13} /> Delete</button>
                   </>
                 }
-              />
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12, padding: 10, background: 'var(--paper)', borderRadius: 8, fontSize: 12 }}>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Mobile</span><strong>{emp.mobile || '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Dept</span><strong>{emp.department_name || '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Desig</span><strong>{emp.designation_name || '—'}</strong></div>
+                  <div><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Joining</span><strong>{emp.joining_date || '—'}</strong></div>
+                  <div style={{ gridColumn: 'span 2' }}><span style={{ color: 'var(--slate)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>Salary</span><strong>{emp.salary ? `₹${Number(emp.salary).toLocaleString('en-IN')}` : '—'}</strong></div>
+                </div>
+              </MobileCard>
             )}
           />
         )}
