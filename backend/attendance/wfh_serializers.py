@@ -16,5 +16,9 @@ class WorkFromHomeSerializer(serializers.ModelSerializer):
             'reviewer', 'reviewer_name', 'reviewed_at', 'reviewer_notes',
             'created_at'
         ]
+<<<<<<< HEAD
         read_only_fields = ['reviewed_at', 'created_at', 'reviewer', 'status']
+=======
+        read_only_fields = ['reviewed_at', 'created_at', 'reviewer', 'employee', 'intern', 'status']
+>>>>>>> e6612d4285a38b7472367da6263ce41b31f0b002
 

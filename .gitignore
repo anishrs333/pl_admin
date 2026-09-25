@@ -1,0 +1,41 @@
+# Virtual environments
+.venv/
+venv/
+**/venv/
+**/.venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+**/*.pyc
+**/__pycache__/
+
+# Databases
+db.sqlite3
+backend/db.sqlite3
+*.sqlite3
+
+# Media and static
+media/
+backend/media/
+staticfiles/
+backend/staticfiles/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Frontend builds
+dist/
+frontend/dist/
+
+# Environment variables
+.env
+backend/.env
+frontend/.env
+
+# Temporary files
+backend/test_receipt.pdf
+*.pdf
+# Exception for company logo (must be committed)
+!backend/payroll/company_logo.png
