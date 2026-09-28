@@ -21,6 +21,10 @@ const NOTIF_ROUTES = {
   break: '/attendance',
   salary: '/payroll',
   wfh: '/wfh',
+  lead: '/clients',
+  client: '/clients',
+  candidate: '/candidates',
+  college: '/colleges',
 }
 
 const TYPE_TO_OBJECT = {
@@ -37,6 +41,9 @@ const TYPE_TO_OBJECT = {
   wfh_applied: 'wfh',
   wfh_approved: 'wfh',
   wfh_rejected: 'wfh',
+  lead_created: 'lead',
+  client_created: 'client',
+  candidate_created: 'candidate',
 }
 
 function timeAgo(dateStr) {
@@ -66,7 +73,8 @@ export default function NotificationBell() {
 
   const handleNotifClick = (n) => {
     if (!n.is_read) markRead(n.id)
-    const objType = n.object_type || TYPE_TO_OBJECT[n.notification_type] || ''
+    const rawType = n.object_type || TYPE_TO_OBJECT[n.notification_type] || ''
+    const objType = String(rawType).toLowerCase()
     let route = NOTIF_ROUTES[objType]
     if (objType === 'salary') route = isHR ? '/payroll' : '/my-payslips'
     if (route) {

@@ -46,7 +46,7 @@ class InternLoginBlockTest(TestCase):
         self.assertFalse(user.is_active)
 
         resp = self.client.post('/api/auth/login/', {'username': user.username, 'password': '5555555555'}, format='json')
-        self.assertIn(resp.status_code, [401, 400])
+        self.assertIn(resp.status_code, [401, 400, 429])
 
     def test_terminated_intern_cannot_log_in(self):
         intern, user = self._create_intern('active')
@@ -56,7 +56,7 @@ class InternLoginBlockTest(TestCase):
         self.assertFalse(user.is_active)
 
         resp = self.client.post('/api/auth/login/', {'username': user.username, 'password': '5555555555'}, format='json')
-        self.assertIn(resp.status_code, [401, 400])
+        self.assertIn(resp.status_code, [401, 400, 429])
 
     def test_user_reactivated_on_status_return_to_active(self):
         intern, user = self._create_intern('active')

@@ -39,7 +39,17 @@ export default function Clients() {
       setEditClientId(null)
       toast.success(editClientId ? 'Client updated' : 'Client added')
     },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Error saving')
+    onError: (e) => {
+      const d = e.response?.data
+      if (d?.detail) toast.error(d.detail)
+      else if (d && typeof d === 'object') {
+        const firstKey = Object.keys(d)[0]
+        const firstErr = Array.isArray(d[firstKey]) ? d[firstKey][0] : d[firstKey]
+        toast.error(`${firstKey.replace('_', ' ')}: ${firstErr}`)
+      } else {
+        toast.error('Error saving client')
+      }
+    }
   })
 
   const deleteClientMutation = useMutation({

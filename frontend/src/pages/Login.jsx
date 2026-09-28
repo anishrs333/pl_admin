@@ -27,8 +27,8 @@ export default function Login() {
       const kind = resData.profile?.kind
 
       const isAdmin = role === 'hr' || role === 'hr_executive' || role === 'superuser'
-      const isEmployee = kind === 'employee' || (role === 'employee' && !isAdmin)
-      const isIntern = kind === 'intern' || (role === 'intern' && !isAdmin)
+      const isEmployee = (kind === 'employee' || role === 'employee') && !isAdmin
+      const isIntern = (kind === 'intern' || role === 'intern') && !isAdmin
 
       if (roleMode === 'admin' && !isAdmin) {
         await logout()

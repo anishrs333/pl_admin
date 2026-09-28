@@ -102,13 +102,13 @@ class SalaryPermissionTests(PayrollTestBase):
     def test_hr_sees_all_salaries(self):
         res = self.hr_client.get('/api/payroll/')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        count = res.data.get('count', len(res.data))
+        count = len(res.data) if isinstance(res.data, list) else res.data.get('count', len(res.data))
         self.assertGreaterEqual(count, 1)
 
     def test_employee_sees_own_salary_only(self):
         res = self.emp_client.get('/api/payroll/')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        results = res.data.get('results', res.data)
+        results = res.data if isinstance(res.data, list) else res.data.get('results', res.data)
         for sal in results:
             self.assertEqual(sal.get('employee'), self.employee.id)
 
@@ -124,7 +124,7 @@ class SalaryPermissionTests(PayrollTestBase):
         )
         res = self.intern_client.get('/api/payroll/')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        results = res.data.get('results', res.data)
+        results = res.data if isinstance(res.data, list) else res.data.get('results', res.data)
         ids = [s.get('id') for s in results]
         self.assertIn(intern_salary.id, ids)
         self.assertNotIn(self.emp_salary.id, ids)

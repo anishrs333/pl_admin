@@ -16,7 +16,7 @@ class DashboardStatsView(APIView):
     def get(self, request):
         today = timezone.now().date()
         return Response({
-            'total_employees': Employee.objects.filter(status='active').count(),
+            'total_employees': Employee.objects.exclude(status='inactive').count(),
             'total_interns': Intern.objects.filter(status='active').count(),
             'total_candidates': Candidate.objects.exclude(status__in=['rejected', 'joined']).count(),
             'today_attendance': Attendance.objects.filter(date=today, status='present').count(),
