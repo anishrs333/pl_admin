@@ -79,7 +79,7 @@ class DashboardStatsView(APIView):
                 'code': a.employee.employee_id,
                 'name': a.employee.full_name,
                 'dept': a.employee.department.name if a.employee.department else '—',
-                'check_in': a.check_in.strftime('%I:%M %p') if a.check_in else '—',
+                'check_in': timezone.localtime(a.check_in).strftime('%I:%M %p') if a.check_in else '—',
                 'pic': request.build_absolute_uri(a.employee.profile_picture.url) if a.employee.profile_picture else None,
             }
             for a in emp_att_today_qs
@@ -95,7 +95,7 @@ class DashboardStatsView(APIView):
                 'code': a.intern.intern_id,
                 'name': a.intern.name,
                 'domain': a.intern.domain,
-                'check_in': a.check_in.strftime('%I:%M %p') if a.check_in else '—',
+                'check_in': timezone.localtime(a.check_in).strftime('%I:%M %p') if a.check_in else '—',
                 'pic': request.build_absolute_uri(a.intern.profile_picture.url) if a.intern.profile_picture else None,
             }
             for a in intern_att_today_qs

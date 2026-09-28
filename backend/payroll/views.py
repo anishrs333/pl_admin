@@ -170,6 +170,7 @@ class SalaryViewSet(viewsets.ModelViewSet):
 class AdvanceViewSet(viewsets.ModelViewSet):
     """Salary advance requests."""
     serializer_class = AdvanceSerializer
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['employee__full_name']
     ordering = ['-requested_at']

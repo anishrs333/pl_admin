@@ -68,8 +68,10 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         model = Employee
         fields = [
             'id', 'employee_id', 'full_name', 'email', 'mobile',
-            'department_name', 'designation_name', 'status', 'joining_date',
-            'profile_picture', 'profile_picture_url',
+            'department', 'department_name', 'designation', 'designation_name',
+            'joining_date', 'salary', 'address',
+            'emergency_contact_name', 'emergency_contact',
+            'status', 'profile_picture', 'profile_picture_url',
         ]
 
     def get_profile_picture_url(self, obj):

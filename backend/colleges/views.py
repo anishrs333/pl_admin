@@ -42,3 +42,4 @@ class WorkshopViewSet(viewsets.ModelViewSet):
     queryset = Workshop.objects.select_related('college')
     serializer_class = WorkshopSerializer
     permission_classes = [IsHR]
+    pagination_class = None

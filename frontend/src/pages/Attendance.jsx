@@ -87,6 +87,8 @@ function LeaveForm({ isHR, onClose, onSuccess }) {
     to_date: '',
     reason: '',
     description: '',
+    data_types:'',
+    
   })
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -281,11 +283,15 @@ export default function Attendance() {
   const { user } = useAuth()
   const isHR = user?.role === 'hr' || user?.role === 'hr_executive'
   const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all') // 'all' | 'employee' | 'intern'
+  const [attStatusFilter, setAttStatusFilter] = useState('all') // 'all' | 'present' | 'absent' | 'late'
   const [tab, setTab] = useState('attendance') // 'attendance' | 'leaves' | 'breaks'
   const [leaveModal, setLeaveModal] = useState(false)
   const [breakModal, setBreakModal] = useState(false)
   const [leaveFilter, setLeaveFilter] = useState('all')
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState('all') // 'all' | 'employee' | 'intern'
   const [breakFilter, setBreakFilter] = useState('all')
+  const [breakTypeFilter, setBreakTypeFilter] = useState('all') // 'all' | 'employee' | 'intern'
   const [dateRange, setDateRange] = useState('today')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -394,18 +400,46 @@ export default function Attendance() {
 
   const employees = (emps?.results || emps || [])
   const internList = (interns?.results || interns || [])
-  const roster = [
+  const today = todayAtt || []
+
+  const roster = useMemo(() => [
     ...employees.map(e => ({ id: e.id, type: 'employee', name: e.full_name, code: e.employee_id, picture: e.profile_picture_url })),
     ...internList.map(i => ({ id: i.id, type: 'intern', name: i.name, code: i.intern_id, picture: i.profile_picture_url })),
-  ]
-  const filteredRoster = roster.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-  const today = todayAtt || []
+  ], [employees, internList])
+
+  const filteredRoster = useMemo(() => {
+    return roster.filter(p => {
+      if (typeFilter !== 'all' && p.type !== typeFilter) return false
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.code.toLowerCase().includes(search.toLowerCase())) return false
+      if (attStatusFilter !== 'all') {
+        const att = today.find(a => (p.type === 'employee' ? a.employee === p.id : a.intern === p.id))
+        const status = att ? att.status : 'absent'
+        if (attStatusFilter !== status) return false
+      }
+      return true
+    })
+  }, [roster, typeFilter, search, attStatusFilter, today])
+
   const presentEmployees = today.filter(a => a.status === 'present' && a.employee).length
   const presentInterns = today.filter(a => a.status === 'present' && a.intern).length
   const absentEmployees = Math.max(employees.length - presentEmployees, 0)
   const absentInterns = Math.max(internList.length - presentInterns, 0)
-  const leaves = leavesData?.results || leavesData || []
-  const breaks = breaksData?.results || breaksData || []
+  
+  const rawLeaves = leavesData?.results || leavesData || []
+  const leaves = useMemo(() => {
+    return rawLeaves.filter(l => {
+      if (leaveTypeFilter !== 'all' && l.person_type !== leaveTypeFilter) return false
+      return true
+    })
+  }, [rawLeaves, leaveTypeFilter])
+
+  const rawBreaks = breaksData?.results || breaksData || []
+  const breaks = useMemo(() => {
+    return rawBreaks.filter(b => {
+      if (breakTypeFilter !== 'all' && b.person_type !== breakTypeFilter) return false
+      return true
+    })
+  }, [rawBreaks, breakTypeFilter])
 
   // Group attendance by date for multi-day view
   const groupedByDate = useMemo(() => {
@@ -777,6 +811,27 @@ export default function Attendance() {
                 </div>
                 <select
                   className="form-control toolbar-select"
+                  style={{ flex: '0 0 auto', width: 'auto', minWidth: 140 }}
+                  value={typeFilter}
+                  onChange={e => setTypeFilter(e.target.value)}
+                >
+                  <option value="all">All Roster</option>
+                  <option value="employee">Employees Only</option>
+                  <option value="intern">Interns Only</option>
+                </select>
+                <select
+                  className="form-control toolbar-select"
+                  style={{ flex: '0 0 auto', width: 'auto', minWidth: 130 }}
+                  value={attStatusFilter}
+                  onChange={e => setAttStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="late">Late</option>
+                </select>
+                <select
+                  className="form-control toolbar-select"
                   style={{ flex: '0 0 auto', width: 'auto', minWidth: 130 }}
                   value={dateRange}
                   onChange={e => setDateRange(e.target.value)}
@@ -993,12 +1048,19 @@ export default function Attendance() {
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="card-title">Leave Requests</span>
-            <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={leaveFilter} onChange={e => setLeaveFilter(e.target.value)}>
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={leaveTypeFilter} onChange={e => setLeaveTypeFilter(e.target.value)}>
+                <option value="all">All Roster</option>
+                <option value="employee">Employees Only</option>
+                <option value="intern">Interns Only</option>
+              </select>
+              <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={leaveFilter} onChange={e => setLeaveFilter(e.target.value)}>
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
           </div>
           {leavesLoading ? <Loading text="Loading leaves…" /> : leaves.length === 0 ? (
             <EmptyState icon={CalendarDays} title="No leave requests found" description="No leave requests match your filters." />
@@ -1016,12 +1078,19 @@ export default function Attendance() {
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="card-title">Break Requests</span>
-            <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={breakFilter} onChange={e => setBreakFilter(e.target.value)}>
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={breakTypeFilter} onChange={e => setBreakTypeFilter(e.target.value)}>
+                <option value="all">All Roster</option>
+                <option value="employee">Employees Only</option>
+                <option value="intern">Interns Only</option>
+              </select>
+              <select className="form-control" style={{ width: 'auto', fontSize: 13 }} value={breakFilter} onChange={e => setBreakFilter(e.target.value)}>
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
           </div>
           {breaksLoading ? <Loading text="Loading breaks…" /> : breaks.length === 0 ? (
             <EmptyState icon={Coffee} title="No break requests found" description="No break requests match your filters." />

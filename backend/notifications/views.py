@@ -13,6 +13,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     POST /api/notifications/mark_all_read/  - Mark all as read
     """
     serializer_class = NotificationSerializer
+    pagination_class = None
 
     def get_queryset(self):
         return Notification.objects.filter(recipient=self.request.user)

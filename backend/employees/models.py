@@ -116,3 +116,15 @@ class Employee(models.Model):
 
     def __str__(self):
         return f'{self.employee_id} — {self.full_name}'
+
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+@receiver(post_delete, sender=Employee)
+def delete_employee_user(sender, instance, **kwargs):
+    if instance.user_id:
+        try:
+            User.objects.filter(pk=instance.user_id).delete()
+        except Exception:
+            pass

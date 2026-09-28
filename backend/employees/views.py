@@ -11,6 +11,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     permission_classes = [IsHR]
+    pagination_class = None
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
@@ -20,6 +21,7 @@ class DesignationViewSet(viewsets.ModelViewSet):
     queryset = Designation.objects.select_related('department')
     serializer_class = DesignationSerializer
     permission_classes = [IsHR]
+    pagination_class = None
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 

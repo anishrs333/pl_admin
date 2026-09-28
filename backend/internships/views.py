@@ -80,6 +80,7 @@ class InternViewSet(viewsets.ModelViewSet):
 class InternTaskViewSet(viewsets.ModelViewSet):
     """Daily task tracking for interns (separate from the shared Task app)."""
     serializer_class = InternTaskSerializer
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'intern__name']
     ordering = ['-created_at']

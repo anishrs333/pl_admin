@@ -185,12 +185,6 @@ function HRDashboard() {
       </div>
 
       {/* Main Interactive Category Cards */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Users size={18} style={{ color: 'var(--indigo)' }} /> Workforce Roster Breakdown
-        </h3>
-        <span style={{ fontSize: 12, color: 'var(--slate)', fontWeight: 500 }}>Click cards to open searchable roster</span>
-      </div>
 
       <div className="stats-grid" style={{ marginBottom: 28 }}>
         {mainCards.map(({ id, label, value, sub, icon: Icon, color, bg }) => (
@@ -273,14 +267,19 @@ function HRDashboard() {
               <div style={{ fontSize: 12, color: 'var(--slate)' }}>Active employee headcount by department</div>
             </div>
           </div>
-          <div style={{ width: '100%', height: 230 }}>
+          <div style={{ width: '100%', height: 250 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats?.department_distribution || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={stats?.department_distribution || []} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--slate)' }} />
+                <XAxis 
+                  dataKey="name" 
+                  interval={0} 
+                  tick={{ fontSize: 10, fill: 'var(--slate)' }} 
+                  tickFormatter={val => String(val).length > 11 ? String(val).slice(0, 9) + '…' : val} 
+                />
                 <YAxis tick={{ fontSize: 11, fill: 'var(--slate)' }} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: '#1E293B', color: '#FFF', borderRadius: 8, fontSize: 12, border: 'none' }} />
-                <Bar dataKey="Employees" fill="#2563EB" radius={[6, 6, 0, 0]} barSize={32} />
+                <Bar dataKey="Employees" fill="#2563EB" radius={[6, 6, 0, 0]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -296,16 +295,21 @@ function HRDashboard() {
               <div style={{ fontSize: 12, color: 'var(--slate)' }}>Active vs completed interns by domain</div>
             </div>
           </div>
-          <div style={{ width: '100%', height: 230 }}>
+          <div style={{ width: '100%', height: 250 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats?.domain_distribution || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={stats?.domain_distribution || []} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--slate)' }} />
+                <XAxis 
+                  dataKey="name" 
+                  interval={0} 
+                  tick={{ fontSize: 10, fill: 'var(--slate)' }} 
+                  tickFormatter={val => String(val).length > 11 ? String(val).slice(0, 9) + '…' : val} 
+                />
                 <YAxis tick={{ fontSize: 11, fill: 'var(--slate)' }} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: '#1E293B', color: '#FFF', borderRadius: 8, fontSize: 12, border: 'none' }} />
-                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                <Bar dataKey="Active" fill="#059669" radius={[4, 4, 0, 0]} barSize={20} />
-                <Bar dataKey="Completed" fill="#D97706" radius={[4, 4, 0, 0]} barSize={20} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
+                <Bar dataKey="Active" fill="#059669" radius={[4, 4, 0, 0]} barSize={18} />
+                <Bar dataKey="Completed" fill="#D97706" radius={[4, 4, 0, 0]} barSize={18} />
               </BarChart>
             </ResponsiveContainer>
           </div>
