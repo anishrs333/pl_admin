@@ -11,6 +11,7 @@ from .views import _get_self_target
 class WorkFromHomeViewSet(viewsets.ModelViewSet):
     """Work From Home request management."""
     serializer_class = WorkFromHomeSerializer
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['employee__full_name', 'intern__name', 'reason', 'task_description']
     ordering = ['-created_at']

@@ -12,6 +12,7 @@ from .views import _get_self_target
 class BreakRequestViewSet(viewsets.ModelViewSet):
     """Break request management — personal breaks and half days."""
     serializer_class = BreakRequestSerializer
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status']
     search_fields = ['employee__full_name', 'intern__name', 'reason']

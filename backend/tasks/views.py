@@ -11,6 +11,7 @@ from .serializers import TaskSerializer
 class TaskViewSet(viewsets.ModelViewSet):
     """Task management — HR assigns everyone."""
     serializer_class = TaskSerializer
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status']
     search_fields = ['title', 'description']

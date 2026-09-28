@@ -18,6 +18,7 @@ class SalaryViewSet(viewsets.ModelViewSet):
     """
     serializer_class = SalarySerializer
     permission_classes = [IsHRorSelfReadOnly]
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['employee__full_name', 'intern__name']
     ordering = ['-month', '-year']

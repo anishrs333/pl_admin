@@ -21,6 +21,7 @@ def _get_self_target(user):
 class AttendanceViewSet(viewsets.ModelViewSet):
     """Attendance management - Check-in/Check-out for both Employees and Interns."""
     serializer_class = AttendanceSerializer
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['employee__full_name', 'intern__name']
     ordering = ['-date']
@@ -280,6 +281,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 class LeaveViewSet(viewsets.ModelViewSet):
     """Leave management (Employees & Interns)."""
     serializer_class = LeaveSerializer
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status']
     search_fields = ['employee__full_name', 'intern__name', 'reason']

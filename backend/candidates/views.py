@@ -13,6 +13,7 @@ class CandidateViewSet(viewsets.ModelViewSet):
     """Candidate management - Interview scheduling, offer letters, email tracking."""
     permission_classes = [IsHR]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['first_name', 'last_name', 'email', 'position_applied', 'candidate_id']
     ordering = ['-created_at']

@@ -12,6 +12,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializer
     permission_classes = [IsFullHR]
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'contact_person', 'email', 'mobile']
     ordering = ['name']
@@ -22,6 +23,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.select_related('client')
     serializer_class = ProjectSerializer
     permission_classes = [IsFullHR]
+    pagination_class = None
 
     @action(detail=True, methods=['post'], permission_classes=[IsFullHR])
     def mark_cleared(self, request, pk=None):
