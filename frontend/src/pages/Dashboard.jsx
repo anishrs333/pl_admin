@@ -311,38 +311,7 @@ function HRDashboard() {
           </div>
         </div>
 
-        {/* Chart 4: Task Execution Status */}
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <PieIcon size={16} style={{ color: '#8B5CF6' }} /> Task Progress Status
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--slate)' }}>Overview of task workflow status</div>
-            </div>
-          </div>
-          <div style={{ width: '100%', height: 230, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={stats?.task_status || []}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {(stats?.task_status || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ background: '#1E293B', color: '#FFF', borderRadius: 8, fontSize: 12, border: 'none' }} />
-                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+
 
       </div>
 
