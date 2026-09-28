@@ -10,6 +10,8 @@ from tasks.models import Task
 from payroll.models import Salary
 
 
+from django.db import models
+
 class DashboardStatsView(APIView):
     permission_classes = [IsHR]
 
@@ -99,6 +101,52 @@ class DashboardStatsView(APIView):
             for a in intern_att_today_qs
         ]
 
+        # Analytics: 7-Day Attendance Trend
+        attendance_trend = []
+        for i in range(6, -1, -1):
+            d = today - timezone.timedelta(days=i)
+            d_str = d.strftime('%d %b')
+            p_emp = Attendance.objects.filter(date=d, status='present', employee__isnull=False).count()
+            p_int = Attendance.objects.filter(date=d, status='present', intern__isnull=False).count()
+            l_cnt = Attendance.objects.filter(date=d, status='late').count()
+            attendance_trend.append({
+                'date': d_str,
+                'Employees': p_emp,
+                'Interns': p_int,
+                'Total': p_emp + p_int,
+                'Late': l_cnt,
+            })
+
+        # Analytics: Department Roster Distribution
+        dept_dist = []
+        for dept in Department.objects.all():
+            e_cnt = Employee.objects.filter(department=dept).exclude(status='inactive').count()
+            dept_dist.append({
+                'name': dept.name,
+                'Employees': e_cnt,
+            })
+
+        # Analytics: Internship Domain Distribution
+        domain_counts = Intern.objects.values('domain').annotate(
+            active=models.Count('id', filter=models.Q(status='active')),
+            completed=models.Count('id', filter=models.Q(status='completed'))
+        )
+        domain_dist = [
+            {
+                'name': d['domain'] or 'General',
+                'Active': d['active'],
+                'Completed': d['completed'],
+            }
+            for d in domain_counts if d['domain']
+        ]
+
+        # Analytics: Task Status Breakdown
+        task_status = [
+            {'name': 'Pending', 'value': Task.objects.filter(status='pending').count()},
+            {'name': 'In Progress', 'value': Task.objects.filter(status='in_progress').count()},
+            {'name': 'Completed', 'value': Task.objects.filter(status='completed').count()},
+        ]
+
         return Response({
             'total_employees': len(active_employees_list),
             'active_employees_list': active_employees_list,
@@ -121,6 +169,12 @@ class DashboardStatsView(APIView):
             'pending_leaves': Leave.objects.filter(status='pending').count(),
             'departments': Department.objects.count(),
             'pending_payroll': Salary.objects.filter(status='pending').count(),
+
+            # Visual Charts Datasets
+            'attendance_trend': attendance_trend,
+            'department_distribution': dept_dist,
+            'domain_distribution': domain_dist,
+            'task_status': task_status,
         })
 
 
